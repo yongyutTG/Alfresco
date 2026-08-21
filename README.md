@@ -1,6 +1,6 @@
 # Alfresco Direct CI4 Frontend
 
-โปรเจค CI4 สำหรับศึกษา frontend ที่เรียก `UserAlfresco-api` ตรงจาก browser
+โปรเจค CI4 frontend ที่เรียก `UserAlfresco-api` ตรงจาก browser
 
 ```text
 Browser
