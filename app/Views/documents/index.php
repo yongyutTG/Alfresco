@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>เอกสาร Alfresco | Direct API</title>
+    <title>Alfresco </title>
     <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <a class="app-title" href="<?= site_url('documents') ?>">
             <span class="brand-mark small">A</span>
             <span>
-                <strong>Alfresco Direct</strong>
+                <strong>Alfresco</strong>
                 <small>Document Browser</small>
             </span>
         </a>
