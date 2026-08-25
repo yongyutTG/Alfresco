@@ -34,6 +34,10 @@
                     </div>
                 </div>
                 <div id="folderList" class="folder-list"></div>
+                <div class="sidebar-version">
+                    <strong>Alfresco Direct</strong>
+                    <span>v<?= esc($appVersion) ?></span>
+                </div>
             </div>
         </aside>
 
@@ -103,7 +107,7 @@
         </section>
     </main>
 
-    <script>
+    <script {csp-script-nonce}>
         window.AlfrescoDirect = {
             apiBaseUrl: <?= json_encode($apiBaseUrl) ?>,
             rootPath: <?= json_encode($rootPath, JSON_UNESCAPED_UNICODE) ?>,

@@ -11,6 +11,7 @@ class DocumentController extends BaseController
         return view('documents/index', [
             'apiBaseUrl' => rtrim((string) env('userAlfrescoApi.baseUrl', 'http://localhost:3001'), '/'),
             'rootPath'   => $this->rootPath,
+            'appVersion' => (string) env('app.version', '1.0.0'),
         ]);
     }
 }

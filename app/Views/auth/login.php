@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login | Alfresco Direct</title>
+    <title>Login | Alfresco</title>
     <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -16,7 +16,7 @@
                 <div class="brand-mark">A</div>
                 <div>
                     <h2>ระบบ E-Documents Alfresco</h2>
-                    <p>Direct API Frontend</p>
+                    <!-- <p>เข้าสู่ระบบด้วยบัญชี Alfresco เพื่อดูเอกสารตามสิทธิ์</p> -->
                 </div>
             </div>
 
@@ -38,13 +38,15 @@
                 <button type="submit" id="loginBtn">เข้าสู่ระบบ</button>
             </form>
 
-            <div class="login-note" id="loginMessage">
-                หน้านี้เรียก <code>UserAlfresco-api</code> โดยตรง และเก็บ access token ใน browser
+            <div id="loginMessage" class="login-note" role="alert" aria-live="polite"></div>
+
+            <div class="app-version">
+                Alfresco ci4 v<?= esc($appVersion) ?>
             </div>
         </section>
     </main>
 
-    <script>
+    <script {csp-script-nonce}>
         window.AlfrescoDirect = {
             apiBaseUrl: <?= json_encode($apiBaseUrl) ?>,
             documentsUrl: <?= json_encode(site_url('documents')) ?>

@@ -234,6 +234,17 @@ button:disabled {
     font-size: 13px;
 }
 
+.text-danger {
+    color: var(--danger);
+}
+
+.app-version {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: right;
+}
+
 .topbar {
     position: sticky;
     top: 0;
@@ -331,6 +342,20 @@ button:disabled {
     display: grid;
     gap: 8px;
     margin-top: 18px;
+}
+
+.sidebar-version {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.sidebar-version strong,
+.sidebar-version span {
+    display: block;
 }
 
 .folder-item {

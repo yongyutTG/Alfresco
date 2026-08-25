@@ -17,6 +17,10 @@
     }
 
     function setMessage(text, isError) {
+        if (!message) {
+            return;
+        }
+
         message.textContent = text;
         message.classList.toggle('text-danger', Boolean(isError));
     }
