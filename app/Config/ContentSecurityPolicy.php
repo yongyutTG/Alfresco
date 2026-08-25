@@ -54,14 +54,14 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var string|string[]
      */
-    public $scriptSrc = 'self';
+    public $scriptSrc = ['self', 'https://cdnjs.cloudflare.com'];
 
     /**
      * Lists allowed stylesheets' URLs.
      *
      * @var string|string[]
      */
-    public $styleSrc = ['self', 'https://fonts.googleapis.com'];
+    public $styleSrc = ['self', 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'];
 
     /**
      * Defines the origins from which images can be loaded.

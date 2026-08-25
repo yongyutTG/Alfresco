@@ -16,13 +16,34 @@
         return;
     }
 
-    function setMessage(text, isError) {
-        if (!message) {
+    function showToast(text, isError) {
+        if (!window.toastr) {
             return;
         }
 
-        message.textContent = text;
+        window.toastr.options = {
+            closeButton: true,
+            progressBar: true,
+            positionClass: 'toast-top-right',
+            timeOut: '3500',
+        };
+
+        if (isError) {
+            window.toastr.error(text);
+        } else {
+            window.toastr.info(text);
+        }
+    }
+
+    function setMessage(text, isError) {
+        if (!message) {
+            showToast(text, isError);
+            return;
+        }
+
+        message.textContent = window.toastr ? '' : text;
         message.classList.toggle('text-danger', Boolean(isError));
+        showToast(text, isError);
     }
 
     form.addEventListener('submit', async (event) => {
