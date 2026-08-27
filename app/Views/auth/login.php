@@ -39,6 +39,8 @@
                 <button type="submit" id="loginBtn">เข้าสู่ระบบ</button>
             </form>
 
+            <p id="loginMessage" class="login-message" aria-live="polite"></p>
+
             <div class="app-version">
                 Alfresco ci4 v<?= esc($appVersion) ?>
             </div>

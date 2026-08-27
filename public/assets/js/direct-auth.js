@@ -24,26 +24,29 @@
         window.toastr.options = {
             closeButton: true,
             progressBar: true,
-            positionClass: 'toast-top-right',
+            positionClass: 'toast-top-center',
             timeOut: '3500',
         };
 
         if (isError) {
-            window.toastr.error(text);
+            window.toastr.error(text, 'แจ้งเตือน');
         } else {
             window.toastr.info(text);
         }
     }
 
     function setMessage(text, isError) {
-        if (!message) {
-            showToast(text, isError);
-            return;
+        if (message) {
+            message.textContent = text;
+            message.classList.toggle('text-danger', Boolean(isError));
         }
 
-        message.textContent = window.toastr ? '' : text;
-        message.classList.toggle('text-danger', Boolean(isError));
         showToast(text, isError);
+    }
+
+    function resetLoginButton() {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'เข้าสู่ระบบ';
     }
 
     form.addEventListener('submit', async (event) => {
@@ -51,7 +54,8 @@
 
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
-
+        // console.log('Username:', username);
+        // console.log('Password:', password);
         if (!username) {
             setMessage('กรุณากรอกชื่อผู้ใช้งาน', true);
             usernameInput.focus();
@@ -77,18 +81,19 @@
                 body: JSON.stringify({ username, password }),
             });
             const data = await response.json().catch(() => ({}));
+            // console.log('Login Response Data:', data);
 
-            if (!response.ok || !data.accessToken) {
-                throw new Error(data.message || 'Login ไม่สำเร็จ กรุณาตรวจสอบ username/password');
+            if (response.ok && data.accessToken) {
+                localStorage.setItem(storage.accessToken, data.accessToken);
+                localStorage.setItem(storage.username, username);
+                window.location.href = config.documentsUrl;
+            } else {
+                setMessage(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', true);
+                resetLoginButton();
             }
-
-            localStorage.setItem(storage.accessToken, data.accessToken);
-            localStorage.setItem(storage.username, username);
-            window.location.href = config.documentsUrl;
         } catch (error) {
-            setMessage(error.message, true);
-            loginBtn.disabled = false;
-            loginBtn.textContent = 'เข้าสู่ระบบ';
+            setMessage('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', true);
+            resetLoginButton();
         }
     });
 })();
