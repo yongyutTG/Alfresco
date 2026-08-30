@@ -8,15 +8,6 @@ Browser
  -> Alfresco
 ```
 
-ต่างจาก `AlfrescoDocuments`:
-
-```text
-Browser
- -> CI4 proxy
- -> UserAlfresco-api
- -> Alfresco
-```
-
 ## Pages
 
 ```text

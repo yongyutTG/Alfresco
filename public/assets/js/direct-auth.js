@@ -3,17 +3,37 @@
     const storage = {
         accessToken: 'alfresco_direct_access_token',
         username: 'alfresco_direct_username',
+        lastActivity: 'alfresco_direct_last_activity',
+        sessionMessage: 'alfresco_direct_session_message',
     };
+    const idleTimeoutMs = Number(config.idleTimeoutSeconds || 0) * 1000;
 
+    //สร้างตัวแปลงสำหรับเก็บค่าของฟอร์มและปุ่มต่าง ๆ
     const form = document.getElementById('loginForm');
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
     const message = document.getElementById('loginMessage');
 
+    if (hasIdleExpired()) {
+        clearStoredSession();
+        sessionStorage.setItem(storage.sessionMessage, 'Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่');
+    }
+
     if (localStorage.getItem(storage.accessToken)) {
         window.location.href = config.documentsUrl;
         return;
+    }
+
+    function hasIdleExpired() {
+        const lastActivity = Number(localStorage.getItem(storage.lastActivity) || 0);
+        return idleTimeoutMs > 0 && lastActivity > 0 && Date.now() - lastActivity > idleTimeoutMs;
+    }
+
+    function clearStoredSession() {
+        localStorage.removeItem(storage.accessToken);
+        localStorage.removeItem(storage.username);
+        localStorage.removeItem(storage.lastActivity);
     }
 
     function showToast(text, isError) {
@@ -49,6 +69,19 @@
         loginBtn.textContent = 'เข้าสู่ระบบ';
     }
 
+    function showStoredSessionMessage() {
+        const text = sessionStorage.getItem(storage.sessionMessage);
+
+        if (!text) {
+            return;
+        }
+
+        sessionStorage.removeItem(storage.sessionMessage);
+        setMessage(text, true);
+    }
+
+    showStoredSessionMessage();
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -56,18 +89,17 @@
         const password = passwordInput.value;
         // console.log('Username:', username);
         // console.log('Password:', password);
-        if (!username) {
-            setMessage('กรุณากรอกชื่อผู้ใช้งาน', true);
-            usernameInput.focus();
-            return;
-        }
-
-        if (!password) {
-            setMessage('กรุณากรอกรหัสผ่าน', true);
-            passwordInput.focus();
-            return;
-        }
-
+         if (username === "") {
+               //setMessage('กรุณากรอกชื่อผู้ใช้งาน', true);
+                toastr.error("กรุณากรอกชื่อผู้ใช้", "แจ้งเตือน");
+                usernameInput.focus();
+                return;
+            } else if (password === "") {
+                // setMessage('กรุณากรอกรหัสผ่าน', true);
+                toastr.error("กรุณากรอกรหัสผ่าน", "แจ้งเตือน");
+                passwordInput.focus();
+                return;
+            }
         loginBtn.disabled = true;
         loginBtn.textContent = 'กำลังเข้าสู่ระบบ...';
 
@@ -86,13 +118,16 @@
             if (response.ok && data.accessToken) {
                 localStorage.setItem(storage.accessToken, data.accessToken);
                 localStorage.setItem(storage.username, username);
-                window.location.href = config.documentsUrl;
+                localStorage.setItem(storage.lastActivity, String(Date.now()));
+                setTimeout(() => window.location.href = config.documentsUrl, 1000);
             } else {
-                setMessage(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', true);
+                 toastr.error("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", "แจ้งเตือน");
+                // setMessage(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', true);
                 resetLoginButton();
             }
         } catch (error) {
-            setMessage('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', true);
+            toastr.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", "แจ้งเตือน");
+            // setMessage('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', true);
             resetLoginButton();
         }
     });

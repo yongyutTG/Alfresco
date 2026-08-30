@@ -84,7 +84,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var string|string[]
      */
-    public $childSrc = 'self';
+    public $childSrc = ['self', 'blob:'];
 
     /**
      * Limits the origins that you can connect to (via XHR,
@@ -99,7 +99,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var string|string[]
      */
-    public $fontSrc = ['self', 'https://fonts.gstatic.com'];
+    public $fontSrc = ['self', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'];
 
     /**
      * Lists valid endpoints for submission from `<form>` tags.
@@ -124,7 +124,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var array|string|null
      */
-    public $frameSrc;
+    public $frameSrc = ['self', 'blob:'];
 
     /**
      * Restricts the origins allowed to deliver video and audio.

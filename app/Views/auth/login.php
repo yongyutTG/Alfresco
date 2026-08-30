@@ -50,7 +50,8 @@
     <script {csp-script-nonce}>
         window.AlfrescoDirect = {
             apiBaseUrl: <?= json_encode($apiBaseUrl) ?>,
-            documentsUrl: <?= json_encode(site_url('documents')) ?>
+            documentsUrl: <?= json_encode(site_url('documents')) ?>,
+            idleTimeoutSeconds: <?= json_encode($idleTimeoutSeconds) ?>
         };
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>

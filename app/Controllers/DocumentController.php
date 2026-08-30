@@ -12,6 +12,7 @@ class DocumentController extends BaseController
             'apiBaseUrl' => rtrim((string) env('userAlfrescoApi.baseUrl', 'http://localhost:3001'), '/'),
             'rootPath'   => $this->rootPath,
             'appVersion' => (string) env('app.version', '1.0.0'),
+            'idleTimeoutSeconds' => (int) env('SESSION_IDLE_TIMEOUT'),
         ]);
     }
 }
