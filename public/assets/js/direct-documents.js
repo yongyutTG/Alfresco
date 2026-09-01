@@ -18,10 +18,12 @@
     }
 
     const state = {
-        folderPath: config.rootPath,
+        folderPath: '',
+        folderLabel: 'หน้าหลัก',
+        isHomeSelected: true,
         page: 1,
         hasMoreItems: false,
-        pageSize: 100,
+        pageSize: 17,
         totalItems: 0,
         currentItemCount: 0,
         hasKnownTotal: false,
@@ -57,8 +59,13 @@
     const logoutCancelBtn = document.getElementById('logoutCancelBtn');
 
     const savedUsername = localStorage.getItem(storage.username) || '-';
-    userName.textContent = savedUsername;
-    userAvatar.textContent = savedUsername.charAt(0).toUpperCase() || 'A';
+    if (userName) {
+        userName.textContent = savedUsername;
+    }
+
+    if (userAvatar) {
+        userAvatar.textContent = savedUsername.charAt(0).toUpperCase() || 'A';
+    }
 
     if (hasIdleExpired()) {
         expireSession();
@@ -139,13 +146,15 @@
         }
     }
 
-    function setSelectedFolder(path) {
+    function setSelectedFolder(path, label, isHome = false) {
         state.folderPath = path;
+        state.folderLabel = label || path;
+        state.isHomeSelected = isHome;
         folderPathInput.value = path;
-        selectedFolder.textContent = path;
+        selectedFolder.textContent = state.folderLabel;
 
         document.querySelectorAll('.folder-item').forEach((button) => {
-            button.classList.toggle('active', button.dataset.path === path);
+            button.classList.toggle('active', button.dataset.key === (isHome ? 'home' : path));
         });
     }
 
@@ -226,11 +235,18 @@
         const items = pickItems(payload).filter((item) => item.isFolder || item.type === 'cmis:folder');
 
         folderList.appendChild(createFolderButton({
-            name: 'documentLibrary',
+            name: 'หน้าหลัก',
+            path: '',
+            icon: 'fa-house',
+            isHome: true,
+        }));
+        folderList.appendChild(createFolderButton({
+            name: 'คลังเอกสาร',
             path: config.rootPath,
+            icon: 'fa-folder-tree',
         }));
         items.forEach((item) => folderList.appendChild(createFolderButton(item)));
-        setSelectedFolder(state.folderPath);
+        setSelectedFolder(state.folderPath, state.folderLabel, state.isHomeSelected);
         setMessage('เลือก folder เพื่อโหลดเอกสาร');
     }
 
@@ -249,21 +265,35 @@
 
     function createFolderButton(item) {
         const button = document.createElement('button');
+        const folderName = item.name || item.path;
+        const iconClass = item.icon || 'fa-folder';
+
         button.type = 'button';
         button.className = 'folder-item';
         button.dataset.path = item.path;
+        button.dataset.key = item.isHome ? 'home' : item.path;
         button.innerHTML = `
             <span class="folder-name">
-                <i class="fa-solid fa-folder" aria-hidden="true"></i>
-                <span>${escapeHtml(item.name || item.path)}</span>
+                <i class="fa-solid ${escapeHtml(iconClass)}" aria-hidden="true"></i>
+                <span>${escapeHtml(folderName)}</span>
             </span>
             <span class="folder-path">${escapeHtml(item.path || '')}</span>
         `;
         button.addEventListener('click', async () => {
             state.page = 1;
-            setSelectedFolder(item.path);
+            setSelectedFolder(item.path, folderName, Boolean(item.isHome));
             keywordInput.value = '';
+            state.currentItemCount = 0;
+            state.totalItems = 0;
+            state.hasKnownTotal = false;
             setResultCount(0);
+
+            if (item.isHome) {
+                showSelectFolderPrompt();
+                updatePager(false);
+                return;
+            }
+
             updatePager(true);
             showLoadingSpinner();
 
@@ -280,9 +310,18 @@
     }
 
     async function loadDocuments() {
-        const maxItems = Number(pageSizeInput.value || 100);
+        const maxItems = Number(pageSizeInput.value || 17);
         const skipCount = (state.page - 1) * maxItems;
         const keyword = keywordInput.value.trim();
+
+        if (state.isHomeSelected) {
+            state.currentItemCount = 0;
+            state.totalItems = 0;
+            state.hasKnownTotal = false;
+            showSelectFolderPrompt();
+            updatePager(false);
+            return;
+        }
 
         state.pageSize = maxItems;
         setMessage('กำลังดึงเอกสาร...');
@@ -375,10 +414,14 @@
                         </div>
                     </td>
                     <td>
-                        <button type="button" class="open-link open-file-btn" data-id="${id}" data-name="${openName}">
-                            <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
-                            <span>เปิดไฟล์</span>
-                        </button>
+                        <div class="row-actions">
+                            <button type="button" class="open-file-btn icon-action-btn" data-id="${id}" data-name="${openName}" aria-label="เปิดไฟล์" title="เปิดไฟล์">
+                                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดาวน์โหลดไฟล์" title="ดาวน์โหลดไฟล์">
+                                <i class="fa-solid fa-download" aria-hidden="true"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -414,20 +457,11 @@
         }
     }
 
-    async function openFile(id, name) {
+    async function fetchFileBlob(id, name, errorPrefix = 'เปิดไฟล์ไม่สำเร็จ') {
         if (hasIdleExpired()) {
             expireSession();
             throw new Error('Session หมดอายุ กรุณา login ใหม่');
         }
-
-        const viewerWindow = window.open('', '_blank');
-        if (!viewerWindow) {
-            throw new Error('Browser บล็อก popup กรุณาอนุญาต popup สำหรับเว็บไซต์นี้');
-        }
-
-        viewerWindow.opener = null;
-        viewerWindow.document.title = name || 'file.pdf';
-        viewerWindow.document.body.textContent = 'กำลังโหลดไฟล์...';
 
         const url = apiUrl(`/user-api/alfresco/documents/${encodeURIComponent(id)}/content?name=${encodeURIComponent(name || 'file.pdf')}`);
         const response = await fetch(url, {
@@ -437,13 +471,56 @@
         });
 
         if (!response.ok) {
-            viewerWindow.close();
-            throw new Error(`เปิดไฟล์ไม่สำเร็จ: HTTP ${response.status}`);
+            throw new Error(`${errorPrefix}: HTTP ${response.status}`);
         }
 
-        const blob = await response.blob();
+        return response.blob();
+    }
+
+    async function openFile(id, name) {
+        const viewerWindow = window.open('', '_blank');
+        if (!viewerWindow) {
+            throw new Error('Browser บล็อก popup กรุณาอนุญาต popup สำหรับเว็บไซต์นี้');
+        }
+
+        viewerWindow.opener = null;
+        viewerWindow.document.title = name || 'file.pdf';
+        viewerWindow.document.body.textContent = 'กำลังโหลดไฟล์...';
+
+        try {
+            const blob = await fetchFileBlob(id, name, 'เปิดไฟล์ไม่สำเร็จ');
+            const objectUrl = URL.createObjectURL(blob);
+            viewerWindow.location.href = objectUrl;
+        } catch (error) {
+            viewerWindow.close();
+            throw error;
+        }
+    }
+
+    async function downloadFile(id, name) {
+        const blob = await fetchFileBlob(id, name, 'ดาวน์โหลดไฟล์ไม่สำเร็จ');
         const objectUrl = URL.createObjectURL(blob);
-        viewerWindow.location.href = objectUrl;
+        const downloadLink = document.createElement('a');
+
+        downloadLink.href = objectUrl;
+        downloadLink.download = name || 'file.pdf';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        URL.revokeObjectURL(objectUrl);
+    }
+
+    function showSelectFolderPrompt() {
+        rows.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty-state-cell">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                        <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
 
     function updatePager(isLoading) {
@@ -568,7 +645,8 @@
         state.currentItemCount = 0;
         state.totalItems = 0;
         state.hasKnownTotal = false;
-        rows.innerHTML = '';
+        setSelectedFolder('', 'หน้าหลัก', true);
+        showSelectFolderPrompt();
         setResultCount(0);
         setMessage('ล้างคำค้นแล้ว เลือก folder เพื่อโหลดเอกสาร หรือกดค้นหาใน folder ปัจจุบัน');
         updatePager(false);
@@ -603,9 +681,17 @@
     }
 
     rows.addEventListener('click', (event) => {
-        const button = event.target.closest('.open-file-btn');
-        if (!button) return;
-        openFile(button.dataset.id, button.dataset.name).catch((error) => setMessage(error.message, true));
+        const openButton = event.target.closest('.open-file-btn');
+        const downloadButton = event.target.closest('.download-file-btn');
+
+        if (openButton) {
+            openFile(openButton.dataset.id, openButton.dataset.name).catch((error) => setMessage(error.message, true));
+            return;
+        }
+
+        if (downloadButton) {
+            downloadFile(downloadButton.dataset.id, downloadButton.dataset.name).catch((error) => setMessage(error.message, true));
+        }
     });
 
     if (sortNameBtn) {
@@ -640,7 +726,7 @@
         loadDocuments().catch((error) => setMessage(error.message, true));
     });
 
-    setSelectedFolder(config.rootPath);
+    setSelectedFolder('', 'หน้าหลัก', true);
     updateNameSortButton();
     updatePager(false);
     loadFolders().catch((error) => setMessage(error.message, true));

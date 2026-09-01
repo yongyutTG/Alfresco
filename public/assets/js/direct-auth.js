@@ -15,6 +15,8 @@
     const loginBtn = document.getElementById('loginBtn');
     const message = document.getElementById('loginMessage');
 
+    configureToastr();
+
     if (hasIdleExpired()) {
         clearStoredSession();
         sessionStorage.setItem(storage.sessionMessage, 'Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่');
@@ -36,7 +38,7 @@
         localStorage.removeItem(storage.lastActivity);
     }
 
-    function showToast(text, isError) {
+    function configureToastr() {
         if (!window.toastr) {
             return;
         }
@@ -44,9 +46,15 @@
         window.toastr.options = {
             closeButton: true,
             progressBar: true,
-            positionClass: 'toast-top-center',
+            positionClass: 'toast-center-center',
             timeOut: '3500',
         };
+    }
+
+    function showToast(text, isError) {
+        if (!window.toastr) {
+            return;
+        }
 
         if (isError) {
             window.toastr.error(text, 'แจ้งเตือน');
@@ -89,14 +97,14 @@
         const password = passwordInput.value;
         // console.log('Username:', username);
         // console.log('Password:', password);
-         if (username === "") {
+        if (username === "") {
                //setMessage('กรุณากรอกชื่อผู้ใช้งาน', true);
-                toastr.error("กรุณากรอกชื่อผู้ใช้", "แจ้งเตือน");
+                showToast("กรุณากรอกชื่อผู้ใช้", true);
                 usernameInput.focus();
                 return;
             } else if (password === "") {
                 // setMessage('กรุณากรอกรหัสผ่าน', true);
-                toastr.error("กรุณากรอกรหัสผ่าน", "แจ้งเตือน");
+                showToast("กรุณากรอกรหัสผ่าน", true);
                 passwordInput.focus();
                 return;
             }
@@ -121,12 +129,12 @@
                 localStorage.setItem(storage.lastActivity, String(Date.now()));
                 setTimeout(() => window.location.href = config.documentsUrl, 1000);
             } else {
-                 toastr.error("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", "แจ้งเตือน");
+                showToast("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", true);
                 // setMessage(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', true);
                 resetLoginButton();
             }
         } catch (error) {
-            toastr.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", "แจ้งเตือน");
+            showToast("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", true);
             // setMessage('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', true);
             resetLoginButton();
         }

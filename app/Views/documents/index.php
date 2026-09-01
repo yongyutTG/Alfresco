@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Alfresco </title>
     <link rel="stylesheet" href="<?= base_url('assets/css/app.css') ?>">
+
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
@@ -42,9 +43,14 @@
         </a>
 
         <div class="user-box">
-            <span id="userAvatar" class="user-avatar">A</span>
+            <span class="user-label">
+                <!-- <i class="fa fa-user" aria-hidden="true"></i> -->
+                <span>ชื่อผู้ใช้งาน:</span>
+            </span>
             <span id="userName" class="user-name">-</span>
-            <button id="logoutBtn" type="button" class="logout-action">ออกจากระบบ</button>
+            <button id="logoutBtn" type="button" class="logout-icon-btn" aria-label="ออกจากระบบ" title="ออกจากระบบ">
+                <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+            </button>
         </div>
     </header>
 
@@ -52,15 +58,15 @@
         <aside class="sidebar">
             <div class="side-section">
                 <div class="section-title">
-                    <span class="section-icon">F</span>
+                    <!-- <span class="section-icon">F</span> -->
                     <div>
-                        <h2>Folder ตามสิทธิ์</h2>
-                        <p>เลือก folder ที่ต้องการดูเอกสาร</p>
+                        <!-- <h2>Folder ตามสิทธิ์</h2> -->
+                        <!-- <p>เลือก folder ที่ต้องการดูเอกสาร</p> -->
                     </div>
                 </div>
                 <div id="folderList" class="folder-list"></div>
                 <div class="sidebar-version">
-                    <strong>Alfresco Direct</strong>
+                    <strong>Alfresco ci4</strong>
                     <span>v<?= esc($appVersion) ?></span>
                 </div>
             </div>
@@ -70,7 +76,7 @@
             <div class="toolbar">
                 <div>
                     <div class="eyebrow">Current Location</div>
-                    <h1 id="selectedFolder"><?= esc($rootPath) ?></h1>
+                    <h1 id="selectedFolder">หน้าหลัก</h1>
                 </div>
                 <button id="reloadFoldersBtn" type="button" class="secondary-btn">
                     <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
@@ -89,9 +95,10 @@
                 <label>
                     <span>จำนวนต่อหน้า</span>
                     <select id="pageSize">
+                        <option value="17" selected>17</option>
                         <option value="25">25</option>
                         <option value="50">50</option>
-                        <option value="100" selected>100</option>
+                        <option value="100">100</option>
                     </select>
                 </label>
 
@@ -123,7 +130,16 @@
                             <th>จัดการ</th>
                         </tr>
                     </thead>
-                    <tbody id="documentRows"></tbody>
+                    <tbody id="documentRows">
+                        <tr>
+                            <td colspan="5" class="empty-state-cell">
+                                <div class="empty-state">
+                                    <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+                                    <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
 
