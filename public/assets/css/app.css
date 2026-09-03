@@ -411,6 +411,10 @@ button:disabled {
     align-items: center;
 }
 
+.user-box {
+    font-size: 14px;
+}
+
 .app-title {
     text-decoration: none;
 }
@@ -495,6 +499,13 @@ button:disabled {
     border-color: #b7dfc4;
 }
 
+.location-action-btn:hover,
+.location-action-btn:focus-visible {
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-color: #bfd4e8;
+}
+
 .row-actions {
     display: flex;
     gap: 6px;
@@ -559,7 +570,7 @@ button:disabled {
 
 .folder-item {
     width: 100%;
-    min-height: 52px;
+    min-height: 48px;
     display: grid;
     gap: 3px;
     justify-content: stretch;
@@ -569,6 +580,7 @@ button:disabled {
     background: #fff;
     border: 1px solid var(--line);
     text-align: left;
+    font-size: 13px;
     font-weight: 400;
     white-space: normal;
 }
@@ -605,7 +617,7 @@ button:disabled {
     width: 100%;
     overflow: hidden;
     color: var(--muted);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 400;
     text-overflow: ellipsis;
 }
@@ -634,6 +646,10 @@ button:disabled {
     word-break: break-word;
 }
 
+#reloadFoldersBtn {
+    font-size: 14px;
+}
+
 .search-panel {
     display: grid;
     grid-template-columns: minmax(240px, 1fr) 160px auto;
@@ -647,9 +663,46 @@ button:disabled {
     box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
 }
 
+#searchForm,
+#searchForm label span,
+#searchForm input,
+#searchForm select,
+#searchForm button {
+    font-size: 14px;
+}
+
 .actions {
     display: flex;
     gap: 8px;
+}
+
+.summary-strip {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--muted);
+    background: var(--panel-soft);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.summary-strip i {
+    color: var(--accent);
+}
+
+.summary-strip.error {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border-color: #f0c1bd;
+}
+
+.summary-strip.error i {
+    color: var(--danger);
 }
 
 .table-wrap {
@@ -758,10 +811,11 @@ tbody tr:hover {
 .pagination {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     align-items: center;
     justify-content: space-between;
-    margin-top: 14px;
+    margin-top: 12px;
+    font-size: 14px;
 }
 
 .page-range-info,
@@ -780,7 +834,7 @@ tbody tr:hover {
 
 .page-actions {
     display: flex;
-    gap: 14px;
+    gap: 11px;
     align-items: center;
     justify-content: flex-end;
     flex-wrap: wrap;
@@ -793,7 +847,8 @@ tbody tr:hover {
     padding: 0;
     color: var(--muted);
     background: transparent;
-    gap: 6px;
+    gap: 5px;
+    font-size: 14px;
 }
 
 .page-actions button:hover,
@@ -813,11 +868,12 @@ tbody tr:hover {
 }
 
 .pagination strong {
-    min-height: 42px;
+    min-height: 34px;
     display: inline-flex;
     align-items: center;
     padding: 0 6px;
     color: var(--text);
+    font-size: 14px;
 }
 
 .loading-spinner-row {

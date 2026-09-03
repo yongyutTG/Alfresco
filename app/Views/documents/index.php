@@ -114,6 +114,11 @@
                 </div>
             </form>
 
+            <div class="summary-strip">
+                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                <span id="message">เลือก folder เพื่อโหลดเอกสาร</span>
+            </div>
+
             <div class="table-wrap">
                 <table>
                     <thead>

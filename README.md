@@ -43,6 +43,7 @@ Content-Type: application/json
 ```http
 GET http://localhost:3001/user-api/alfresco/folders
 GET http://localhost:3001/user-api/alfresco/documents
+GET http://localhost:3001/user-api/alfresco/documents/:id/location
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
 ```
 
@@ -50,6 +51,41 @@ GET http://localhost:3001/user-api/alfresco/documents/:id/content
 
 ```http
 Authorization: Bearer <accessToken>
+```
+
+## Document API Behavior
+
+รายการเอกสารหลักใช้เส้นนี้:
+
+```http
+GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
+```
+
+เส้นรายการเอกสารไม่ดึง `parentPath` อัตโนมัติ เพื่อให้โหลดเร็ว
+
+การค้นหาชื่อไฟล์แบบแม่นใช้ `exactName` หรือ `fileName`:
+
+```http
+GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&exactName=23017_116969
+```
+
+API จะลองค้นชื่อแบบตรงตัวตามลำดับ:
+
+```text
+23017_116969
+23017_116969.pdf
+```
+
+ถ้าหน้าเว็บค้น exact ไม่เจอ ปัจจุบันยัง fallback ไปค้นแบบใกล้เคียงด้วย `q`:
+
+```http
+GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&q=23017_116969
+```
+
+ตำแหน่งไฟล์แยกเป็น endpoint เฉพาะไฟล์:
+
+```http
+GET /user-api/alfresco/documents/:id/location
 ```
 
 ## Security Note

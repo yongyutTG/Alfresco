@@ -329,13 +329,12 @@ setSelectedFolder()
 เมื่อ user คลิก folder:
 
 ```js
-button.addEventListener('click', () => {
+button.addEventListener('click', async () => {
     state.page = 1;
     setSelectedFolder(item.path);
-    rows.innerHTML = '';
-    resultCount.textContent = '0';
-    setMessage('เลือก folder แล้ว กดค้นหาเพื่อดึงเอกสาร');
-    updatePager(false);
+    keywordInput.value = '';
+    showLoadingSpinner();
+    await loadDocuments();
 });
 ```
 
@@ -343,8 +342,8 @@ button.addEventListener('click', () => {
 
 - เก็บ path folder ที่เลือกไว้ใน `state.folderPath`
 - เปลี่ยนข้อความ Current Location
-- ยังไม่โหลดเอกสารทันที
-- ต้องกดปุ่มค้นหาก่อนถึงจะเรียก API เอกสาร
+- ถ้าเลือก `หน้าหลัก` จะแสดงข้อความให้เลือก folder ก่อน
+- ถ้าเลือก `คลังเอกสาร` หรือ folder จาก Alfresco จะโหลดเอกสารทันที
 
 ## 8. ค้นหา/แสดงรายการเอกสาร
 
@@ -375,7 +374,7 @@ searchForm.addEventListener('submit', async (event) => {
 API ที่เรียก:
 
 ```text
-GET http://localhost:3001/user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=100&skipCount=0
+GET http://localhost:3001/user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
 ```
 
 Query parameters:
@@ -401,21 +400,30 @@ Function ที่ทำงาน:
 findExactThenPartial()
 ```
 
-ระบบจะค้น 2 รอบ
+ระบบในหน้าเว็บจะค้น 2 รอบ
 
-รอบที่ 1 ค้นชื่อเต็มก่อน:
+รอบที่ 1 ค้นชื่อไฟล์แบบตรงตัวก่อน:
 
 ```text
-GET /user-api/alfresco/documents?folderPath=<folderPath>&exactName=<keyword>&maxItems=100&skipCount=0
+GET /user-api/alfresco/documents?folderPath=<folderPath>&exactName=<keyword>&maxItems=17&skipCount=0
+```
+
+ถ้า dev หรือหน้าเว็บส่ง `exactName=23017_116969` API จะค้นแบบแม่นโดยลองชื่อ:
+
+```text
+23017_116969
+23017_116969.pdf
 ```
 
 ถ้าเจอ จะหยุดและแสดงผลทันที
 
-รอบที่ 2 ถ้าไม่เจอชื่อเต็ม จะค้นแบบบางส่วน:
+รอบที่ 2 ถ้าไม่เจอ exact หน้าเว็บปัจจุบันยัง fallback ไปค้นแบบใกล้เคียง:
 
 ```text
-GET /user-api/alfresco/documents?folderPath=<folderPath>&q=<keyword>&maxItems=100&skipCount=0
+GET /user-api/alfresco/documents?folderPath=<folderPath>&q=<keyword>&maxItems=17&skipCount=0
 ```
+
+เส้น `q` ใช้ `LIKE '%keyword%'` จึงอาจแสดงไฟล์ที่ชื่อใกล้เคียงได้
 
 สรุป flow:
 
@@ -446,11 +454,13 @@ renderRows(items)
 ข้อมูลที่แสดงในตาราง:
 
 - ชื่อไฟล์
-- ผู้สร้าง
-- วันที่สร้าง
 - ชนิดไฟล์
 - ขนาดไฟล์
+- ผู้สร้าง
+- วันที่สร้าง
 - ปุ่มเปิดไฟล์
+- ปุ่มดาวน์โหลดไฟล์
+- ปุ่มดูตำแหน่งไฟล์
 
 ปุ่มเปิดไฟล์จะเก็บ:
 
@@ -458,6 +468,24 @@ renderRows(items)
 data-id="DOCUMENT_ID"
 data-name="FILE_NAME"
 ```
+
+ปุ่มดูตำแหน่งไฟล์จะเรียก API แยกเฉพาะไฟล์นั้น เพื่อไม่ให้รายการหลักโหลดช้า:
+
+```text
+GET http://localhost:3001/user-api/alfresco/documents/:id/location
+```
+
+ตัวอย่าง response:
+
+```json
+{
+  "id": "DOCUMENT_ID",
+  "parentPath": "/Sites/tg-saving/documentLibrary/การเงิน",
+  "source": "nodes-api"
+}
+```
+
+ถ้าหาตำแหน่งไม่ได้ API จะตอบ `parentPath: null` และหน้าเว็บจะแสดงข้อความว่าไม่พบข้อมูลตำแหน่งไฟล์
 
 ## 10. เปิดไฟล์ PDF
 
@@ -555,6 +583,7 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Load documents | `GET` | `/user-api/alfresco/documents?folderPath=...` | Bearer token |
 | Search exact name | `GET` | `/user-api/alfresco/documents?folderPath=...&exactName=...` | Bearer token |
 | Search partial | `GET` | `/user-api/alfresco/documents?folderPath=...&q=...` | Bearer token |
+| Get file location | `GET` | `/user-api/alfresco/documents/:id/location` | Bearer token |
 | Open content | `GET` | `/user-api/alfresco/documents/:id/content?name=...` | Bearer token |
 
 ## 13. Token อยู่ที่ไหน
@@ -625,9 +654,9 @@ app/Views/documents/index.php
 public/assets/js/direct-documents.js
  -> เช็ค token
  -> โหลด folder ตามสิทธิ์
- -> เลือก folder
- -> กดค้นหาแล้วโหลดเอกสาร
+ -> เลือก folder แล้วโหลดเอกสารทันที
+ -> ค้นหา exactName ก่อน ถ้าไม่เจอค่อย q
+ -> ดูตำแหน่งไฟล์ผ่าน endpoint แยกเมื่อกดไอคอนตำแหน่ง
  -> เปิดไฟล์ด้วย fetch + blob
  -> logout
 ```
-

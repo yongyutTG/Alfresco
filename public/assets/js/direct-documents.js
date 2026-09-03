@@ -421,6 +421,9 @@
                             <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดาวน์โหลดไฟล์" title="ดาวน์โหลดไฟล์">
                                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                             </button>
+                            <button type="button" class="location-file-btn icon-action-btn location-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดูตำแหน่งไฟล์" title="ดูตำแหน่งไฟล์">
+                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -508,6 +511,39 @@
         downloadLink.click();
         downloadLink.remove();
         URL.revokeObjectURL(objectUrl);
+    }
+
+    async function showFileLocation(id, name, button) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        const icon = button?.querySelector('i');
+        const originalIconClass = icon?.className;
+
+        if (button) {
+            button.disabled = true;
+        }
+
+        if (icon) {
+            icon.className = 'fa-solid fa-spinner fa-spin';
+        }
+
+        setMessage(`กำลังดึงตำแหน่งไฟล์ ${name || '-'}...`);
+
+        try {
+            const payload = await requestJson(`/user-api/alfresco/documents/${encodeURIComponent(id)}/location`);
+            const parentPath = payload.parentPath || 'ไม่พบข้อมูลตำแหน่งไฟล์';
+            setMessage(`ตำแหน่งไฟล์ ${name || '-'}: ${parentPath}`, !payload.parentPath);
+        } finally {
+            if (icon && originalIconClass) {
+                icon.className = originalIconClass;
+            }
+
+            if (button) {
+                button.disabled = false;
+            }
+        }
     }
 
     function showSelectFolderPrompt() {
@@ -683,6 +719,7 @@
     rows.addEventListener('click', (event) => {
         const openButton = event.target.closest('.open-file-btn');
         const downloadButton = event.target.closest('.download-file-btn');
+        const locationButton = event.target.closest('.location-file-btn');
 
         if (openButton) {
             openFile(openButton.dataset.id, openButton.dataset.name).catch((error) => setMessage(error.message, true));
@@ -691,6 +728,11 @@
 
         if (downloadButton) {
             downloadFile(downloadButton.dataset.id, downloadButton.dataset.name).catch((error) => setMessage(error.message, true));
+            return;
+        }
+
+        if (locationButton) {
+            showFileLocation(locationButton.dataset.id, locationButton.dataset.name, locationButton).catch((error) => setMessage(error.message, true));
         }
     });
 
