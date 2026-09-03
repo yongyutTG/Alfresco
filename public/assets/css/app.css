@@ -562,6 +562,9 @@ button:disabled {
     min-height: 52px;
     display: grid;
     gap: 3px;
+    justify-content: stretch;
+    justify-items: start;
+    align-content: center;
     color: var(--text);
     background: #fff;
     border: 1px solid var(--line);
@@ -584,13 +587,22 @@ button:disabled {
 }
 
 .folder-name {
+    width: 100%;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 8px;
+}
+
+.folder-name i {
+    width: 18px;
+    flex: 0 0 18px;
+    text-align: center;
 }
 
 .folder-path {
     display: block;
+    width: 100%;
     overflow: hidden;
     color: var(--muted);
     font-size: 12px;
