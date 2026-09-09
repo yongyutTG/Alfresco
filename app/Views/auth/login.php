@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login | UserAlfresco</title>
   <link rel="stylesheet" href="<?= base_url('assets/css/login.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/vendor/toastr/toastr.min.css') ?>">
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <main class="shell">
@@ -32,7 +32,7 @@
     </section>
 
     <div class="footer-link">
-      v<?= esc($appVersion) ?>
+      <!-- v<?= esc($appVersion) ?> -->
     </div>
   </main>
       <script {csp-script-nonce}>
@@ -44,7 +44,7 @@
     </script>
 
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="<?= base_url('assets/vendor/toastr/toastr.min.js') ?>"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="<?= base_url('assets/js/direct-auth.js') ?>"></script>
 </body>
 </html>

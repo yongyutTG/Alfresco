@@ -23,7 +23,7 @@
         isHomeSelected: true,
         page: 1,
         hasMoreItems: false,
-        pageSize: 17,
+        pageSize: 25,
         totalItems: 0,
         currentItemCount: 0,
         hasKnownTotal: false,
@@ -33,6 +33,7 @@
     const folderList = document.getElementById('folderList');
     const selectedFolder = document.getElementById('selectedFolder');
     const folderCrumb = document.getElementById('folderCrumb');
+    const folderCrumbSeparator = document.getElementById('folderCrumbSeparator');
     const folderPathInput = document.getElementById('folderPath');
     const searchForm = document.getElementById('searchForm');
     const keywordInput = document.getElementById('keyword');
@@ -152,10 +153,15 @@
         state.folderLabel = label || path;
         state.isHomeSelected = isHome;
         folderPathInput.value = path;
-        selectedFolder.textContent = state.folderLabel;
+        selectedFolder.textContent = isHome ? 'เลือกโฟลเดอร์เอกสาร' : state.folderLabel;
 
         if (folderCrumb) {
             folderCrumb.textContent = state.folderLabel;
+            folderCrumb.hidden = isHome;
+        }
+
+        if (folderCrumbSeparator) {
+            folderCrumbSeparator.hidden = isHome;
         }
 
         document.querySelectorAll('.folder-item').forEach((button) => {
@@ -180,10 +186,28 @@
         }
 
         if (!response.ok) {
-            throw new Error(data.message || 'เรียก API ไม่สำเร็จ');
+            const error = new Error(data.message || 'เรียก API ไม่สำเร็จ');
+            error.status = response.status;
+            error.payload = data;
+            throw error;
         }
 
         return data;
+    }
+
+    async function requestFileLocation(id) {
+        const url = new URL('/user-api/alfresco/documents/location', config.apiBaseUrl);
+        url.searchParams.set('id', id);
+
+        try {
+            return await requestJson(`${url.pathname}${url.search}`);
+        } catch (error) {
+            if (error.status === 404) {
+                return requestJson(`/user-api/alfresco/documents/${encodeURIComponent(id)}/location`);
+            }
+
+            throw error;
+        }
     }
 
     function pickItems(payload) {
@@ -304,7 +328,7 @@
             showLoadingSpinner();
 
             try {
-                await loadDocuments();
+                await loadDocuments({ allowList: true });
             } catch (error) {
                 setMessage(error.message, true);
                 rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
@@ -333,10 +357,11 @@
         return matched ? matched.icon : 'fa-folder';
     }
 
-    async function loadDocuments() {
-        const maxItems = Number(pageSizeInput.value || 17);
+    async function loadDocuments(options = {}) {
+        const maxItems = Number(pageSizeInput.value || 25);
         const skipCount = (state.page - 1) * maxItems;
         const keyword = keywordInput.value.trim();
+        const allowList = Boolean(options.allowList);
 
         if (state.isHomeSelected) {
             state.currentItemCount = 0;
@@ -344,6 +369,12 @@
             state.hasKnownTotal = false;
             showSelectFolderPrompt();
             updatePager(false);
+            return;
+        }
+
+        if (!keyword && !allowList) {
+            setMessage('กรุณากรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา', true);
+            keywordInput.focus();
             return;
         }
 
@@ -377,7 +408,7 @@
     }
 
     async function findExactThenPartial(keyword, maxItems, skipCount) {
-        const exactUrl = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
+        const exactUrl = new URL('/user-api/alfresco/documents/search', config.apiBaseUrl);
         exactUrl.searchParams.set('folderPath', state.folderPath);
         exactUrl.searchParams.set('exactName', keyword);
         exactUrl.searchParams.set('maxItems', String(maxItems));
@@ -389,7 +420,7 @@
             return exactPayload;
         }
 
-        const partialUrl = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
+        const partialUrl = new URL('/user-api/alfresco/documents/search', config.apiBaseUrl);
         partialUrl.searchParams.set('folderPath', state.folderPath);
         partialUrl.searchParams.set('q', keyword);
         partialUrl.searchParams.set('maxItems', String(maxItems));
@@ -556,9 +587,7 @@
         setMessage(`กำลังดึงตำแหน่งไฟล์ ${name || '-'}...`);
 
         try {
-            const url = new URL('/user-api/alfresco/documents/location', config.apiBaseUrl);
-            url.searchParams.set('id', id);
-            const payload = await requestJson(`${url.pathname}${url.search}`);
+            const payload = await requestFileLocation(id);
             const parentPath = payload.parentPath || 'ไม่พบข้อมูลตำแหน่งไฟล์';
             setMessage(`ตำแหน่งไฟล์ ${name || '-'}: ${parentPath}`, !payload.parentPath);
         } finally {
@@ -694,6 +723,13 @@
 
     searchForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+
+        if (!keywordInput.value.trim()) {
+            setMessage('กรุณากรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา', true);
+            keywordInput.focus();
+            return;
+        }
+
         state.page = 1;
         loadDocuments().catch((error) => {
             setMessage(error.message, true);
@@ -707,11 +743,25 @@
         state.currentItemCount = 0;
         state.totalItems = 0;
         state.hasKnownTotal = false;
-        setSelectedFolder('', 'หน้าหลัก', true);
-        showSelectFolderPrompt();
         setResultCount(0);
-        setMessage('ล้างคำค้นแล้ว เลือก folder เพื่อโหลดเอกสาร หรือกดค้นหาใน folder ปัจจุบัน');
-        updatePager(false);
+
+        if (state.isHomeSelected || !state.folderPath) {
+            setSelectedFolder('', 'หน้าหลัก', true);
+            showSelectFolderPrompt();
+            setMessage('ล้างคำค้นแล้ว เลือก folder เพื่อโหลดเอกสาร');
+            updatePager(false);
+            return;
+        }
+
+        setMessage('ล้างคำค้นแล้ว กำลังโหลดรายการเอกสารใน folder เดิม...');
+        showLoadingSpinner();
+        updatePager(true);
+
+        loadDocuments({ allowList: true }).catch((error) => {
+            setMessage(error.message, true);
+            rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+            updatePager(false);
+        });
     });
 
     reloadFoldersBtn.addEventListener('click', () => loadFolders().catch((error) => setMessage(error.message, true)));
@@ -766,23 +816,23 @@
         sortNameBtn.addEventListener('click', () => {
             state.nameSortDirection = state.nameSortDirection === 'asc' ? 'desc' : 'asc';
             updateNameSortButton();
-            loadDocuments().catch((error) => setMessage(error.message, true));
+            loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
         });
     }
 
     firstBtn.addEventListener('click', () => {
         state.page = 1;
-        loadDocuments().catch((error) => setMessage(error.message, true));
+        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
     });
 
     prevBtn.addEventListener('click', () => {
         state.page = Math.max(1, state.page - 1);
-        loadDocuments().catch((error) => setMessage(error.message, true));
+        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
     });
 
     nextBtn.addEventListener('click', () => {
         state.page += 1;
-        loadDocuments().catch((error) => setMessage(error.message, true));
+        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
     });
 
     lastBtn.addEventListener('click', () => {
@@ -791,7 +841,7 @@
         }
 
         state.page = Math.max(1, Math.ceil(state.totalItems / state.pageSize));
-        loadDocuments().catch((error) => setMessage(error.message, true));
+        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
     });
 
     setSelectedFolder('', 'หน้าหลัก', true);

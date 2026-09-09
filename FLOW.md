@@ -334,7 +334,7 @@ button.addEventListener('click', async () => {
     setSelectedFolder(item.path);
     keywordInput.value = '';
     showLoadingSpinner();
-    await loadDocuments();
+    await loadDocuments({ allowList: true });
 });
 ```
 
@@ -359,11 +359,18 @@ Function หลัก:
 loadDocuments()
 ```
 
-เมื่อกดปุ่มค้นหา form จะเรียก:
+เมื่อกดปุ่มค้นหา form จะเช็คก่อนว่ามีคำค้นหรือไม่ ถ้ามีจึงเรียก `loadDocuments()`:
 
 ```js
 searchForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    if (!keywordInput.value.trim()) {
+        setMessage('กรุณากรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา', true);
+        keywordInput.focus();
+        return;
+    }
+
     state.page = 1;
     loadDocuments();
 });
@@ -371,25 +378,19 @@ searchForm.addEventListener('submit', async (event) => {
 
 ### 8.1 กรณีไม่กรอกคำค้น
 
-API ที่เรียก:
+ถ้าเกิดจากการกดปุ่มค้นหา จะไม่มี API ที่เรียก และรายการเดิมที่ได้จากการเลือก folder จะยังแสดงอยู่
+
+```text
+กดค้นหา + ไม่กรอกคำค้น
+ -> ไม่เรียก /user-api/alfresco/documents/search
+ -> ไม่ล้างรายการผลลัพธ์เดิม
+ -> แสดงข้อความให้กรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา
+```
+
+ถ้าเกิดจากการเลือก folder หรือกด pagination จะเรียก list รายการด้วย `/documents`
 
 ```text
 GET http://localhost:3001/user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
-```
-
-Query parameters:
-
-| Parameter | ความหมาย |
-|---|---|
-| `folderPath` | path ของ folder ที่เลือก |
-| `maxItems` | จำนวนรายการต่อหน้า |
-| `skipCount` | จำนวนรายการที่ข้าม ใช้สำหรับ pagination |
-
-Header:
-
-```text
-Authorization: Bearer <accessToken>
-Accept: application/json
 ```
 
 ### 8.2 กรณีกรอกคำค้น
@@ -405,7 +406,7 @@ findExactThenPartial()
 รอบที่ 1 ค้นชื่อไฟล์แบบตรงตัวก่อน:
 
 ```text
-GET /user-api/alfresco/documents?folderPath=<folderPath>&exactName=<keyword>&maxItems=17&skipCount=0
+GET /user-api/alfresco/documents/search?folderPath=<folderPath>&exactName=<keyword>&maxItems=17&skipCount=0
 ```
 
 ถ้า dev หรือหน้าเว็บส่ง `exactName=23017_116969` API จะค้นแบบแม่นโดยลองชื่อ:
@@ -420,7 +421,7 @@ GET /user-api/alfresco/documents?folderPath=<folderPath>&exactName=<keyword>&max
 รอบที่ 2 ถ้าไม่เจอ exact หน้าเว็บปัจจุบันยัง fallback ไปค้นแบบใกล้เคียง:
 
 ```text
-GET /user-api/alfresco/documents?folderPath=<folderPath>&q=<keyword>&maxItems=17&skipCount=0
+GET /user-api/alfresco/documents/search?folderPath=<folderPath>&q=<keyword>&maxItems=17&skipCount=0
 ```
 
 เส้น `q` ใช้ `LIKE '%keyword%'` จึงอาจแสดงไฟล์ที่ชื่อใกล้เคียงได้
@@ -430,11 +431,26 @@ GET /user-api/alfresco/documents?folderPath=<folderPath>&q=<keyword>&maxItems=17
 ```text
 กดค้นหา
  -> loadDocuments()
- -> ถ้ามี keyword
-    -> findExactThenPartial()
-    -> exactName ก่อน
-    -> ถ้าไม่เจอค่อย q
+ -> ถ้าไม่มี keyword จะหยุด ไม่เรียก API และไม่ล้างผลลัพธ์เดิม
+ -> ถ้ามี keyword จะเรียก findExactThenPartial()
+ -> exactName ก่อน
+ -> ถ้าไม่เจอค่อย q
  -> renderRows()
+```
+
+### 8.3 กรณีกดปุ่มล้าง
+
+ปุ่มล้างจะลบคำค้นออกก่อน แล้วดูว่าอยู่ใน folder ไหน
+
+```text
+กดล้าง + มี folder ที่เลือกอยู่
+ -> เรียก loadDocuments({ allowList: true })
+ -> GET /user-api/alfresco/documents?folderPath=<folderPath>
+ -> แสดงรายการเอกสารของ folder เดิมกลับมา
+
+กดล้าง + ยังอยู่หน้าหลัก
+ -> ไม่เรียก API เอกสาร
+ -> แสดงข้อความให้เลือก folder
 ```
 
 ## 9. Render ตารางเอกสาร
@@ -583,8 +599,8 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Login | `POST` | `/auth/login` | ไม่ต้องแนบ |
 | Load folders | `GET` | `/user-api/alfresco/folders?path=...` | Bearer token |
 | Load documents | `GET` | `/user-api/alfresco/documents?folderPath=...` | Bearer token |
-| Search exact name | `GET` | `/user-api/alfresco/documents?folderPath=...&exactName=...` | Bearer token |
-| Search partial | `GET` | `/user-api/alfresco/documents?folderPath=...&q=...` | Bearer token |
+| Search exact name | `GET` | `/user-api/alfresco/documents/search?folderPath=...&exactName=...` | Bearer token |
+| Search partial | `GET` | `/user-api/alfresco/documents/search?folderPath=...&q=...` | Bearer token |
 | Get file location | `GET` | `/user-api/alfresco/documents/location?id=...` | Bearer token |
 | Open content | `GET` | `/user-api/alfresco/documents/:id/content?name=...` | Bearer token |
 

@@ -43,6 +43,7 @@ Content-Type: application/json
 ```http
 GET http://localhost:3001/user-api/alfresco/folders
 GET http://localhost:3001/user-api/alfresco/documents
+GET http://localhost:3001/user-api/alfresco/documents/search
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
 ```
@@ -55,7 +56,27 @@ Authorization: Bearer <accessToken>
 
 ## Document API Behavior
 
-รายการเอกสารหลักใช้เส้นนี้:
+หน้า documents แยกการทำงานเป็น 2 แบบ:
+
+```text
+เลือก folder
+-> list เอกสารใน folder ด้วย /documents
+
+กดปุ่มค้นหา + ไม่กรอกคำค้น
+-> ไม่ยิง API ค้นหา
+-> แสดงข้อความให้กรอกคำค้นก่อน
+-> รายการผลลัพธ์เดิมที่ได้จากการเลือก folder ยังแสดงอยู่
+
+กดปุ่มล้าง
+-> ลบคำค้น
+-> ถ้ามี folder ที่เลือกอยู่ จะโหลดรายการเอกสารของ folder เดิมกลับมา
+-> ถ้ายังไม่ได้เลือก folder จะกลับไปหน้าหลัก
+
+กดปุ่มค้นหา + กรอกคำค้น
+-> ค้นหาเอกสารด้วย /documents/search
+```
+
+เส้น list รายการเอกสาร ใช้ตอนเลือก folder หรือเปลี่ยนหน้า pagination:
 
 ```http
 GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
@@ -63,10 +84,10 @@ GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&max
 
 เส้นรายการเอกสารไม่ดึง `parentPath` อัตโนมัติ เพื่อให้โหลดเร็ว
 
-การค้นหาชื่อไฟล์แบบแม่นใช้ `exactName` หรือ `fileName`:
+การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
 
 ```http
-GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&exactName=23017_116969
+GET /user-api/alfresco/documents/search?folderPath=/Sites/tg-saving/documentLibrary&exactName=23017_116969
 ```
 
 API จะลองค้นชื่อแบบตรงตัวตามลำดับ:
@@ -76,10 +97,10 @@ API จะลองค้นชื่อแบบตรงตัวตามล�
 23017_116969.pdf
 ```
 
-ถ้าหน้าเว็บค้น exact ไม่เจอ ปัจจุบันยัง fallback ไปค้นแบบใกล้เคียงด้วย `q`:
+ถ้าหน้าเว็บค้น exact ไม่เจอ ปัจจุบันยัง fallback ไปค้นแบบใกล้เคียงด้วย `q` ที่ endpoint `/documents/search`:
 
 ```http
-GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&q=23017_116969
+GET /user-api/alfresco/documents/search?folderPath=/Sites/tg-saving/documentLibrary&q=23017_116969
 ```
 
 ตำแหน่งไฟล์แยกเป็น endpoint เฉพาะไฟล์:

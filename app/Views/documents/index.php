@@ -78,10 +78,10 @@
                 <div>
                     <div class="breadcrumb-line">
                         <span>หน้าหลัก</span>
-                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                        <i id="folderCrumbSeparator" class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                         <strong id="folderCrumb">หน้าหลัก</strong>
                     </div>
-                    <h1 id="selectedFolder">หน้าหลัก</h1>
+                    <h1 id="selectedFolder">เลือกโฟลเดอร์เอกสาร</h1>
                 </div>
                 <button id="reloadFoldersBtn" type="button" class="secondary-btn">
                     <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
@@ -100,16 +100,6 @@
                     </span>
                 </label>
 
-                <label>
-                    <span>จำนวนต่อหน้า</span>
-                    <select id="pageSize">
-                        <option value="17" selected>17</option>
-                        <option value="25">25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </label>
-
                 <div class="actions">
                     <button type="submit">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -120,6 +110,15 @@
                         <span>ล้าง</span>
                     </button>
                 </div>
+
+                <label class="page-size-field">
+                    <span>จำนวนต่อหน้า</span>
+                    <select id="pageSize">
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
             </form>
 
             <div class="summary-strip">
