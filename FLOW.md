@@ -472,8 +472,10 @@ data-name="FILE_NAME"
 ปุ่มดูตำแหน่งไฟล์จะเรียก API แยกเฉพาะไฟล์นั้น เพื่อไม่ให้รายการหลักโหลดช้า:
 
 ```text
-GET http://localhost:3001/user-api/alfresco/documents/:id/location
+GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 ```
+
+หน้าเว็บใช้ query string แทนการใส่ `id` ไว้ใน path เพื่อเลี่ยงปัญหา `Route not found` เมื่อ `id` ของ Alfresco มีอักขระพิเศษ ส่วน route เดิม `/user-api/alfresco/documents/:id/location` ยังมีไว้รองรับโค้ดเก่า
 
 ตัวอย่าง response:
 
@@ -583,7 +585,7 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Load documents | `GET` | `/user-api/alfresco/documents?folderPath=...` | Bearer token |
 | Search exact name | `GET` | `/user-api/alfresco/documents?folderPath=...&exactName=...` | Bearer token |
 | Search partial | `GET` | `/user-api/alfresco/documents?folderPath=...&q=...` | Bearer token |
-| Get file location | `GET` | `/user-api/alfresco/documents/:id/location` | Bearer token |
+| Get file location | `GET` | `/user-api/alfresco/documents/location?id=...` | Bearer token |
 | Open content | `GET` | `/user-api/alfresco/documents/:id/content?name=...` | Bearer token |
 
 ## 13. Token อยู่ที่ไหน

@@ -32,6 +32,7 @@
 
     const folderList = document.getElementById('folderList');
     const selectedFolder = document.getElementById('selectedFolder');
+    const folderCrumb = document.getElementById('folderCrumb');
     const folderPathInput = document.getElementById('folderPath');
     const searchForm = document.getElementById('searchForm');
     const keywordInput = document.getElementById('keyword');
@@ -153,6 +154,10 @@
         folderPathInput.value = path;
         selectedFolder.textContent = state.folderLabel;
 
+        if (folderCrumb) {
+            folderCrumb.textContent = state.folderLabel;
+        }
+
         document.querySelectorAll('.folder-item').forEach((button) => {
             button.classList.toggle('active', button.dataset.key === (isHome ? 'home' : path));
         });
@@ -266,7 +271,7 @@
     function createFolderButton(item) {
         const button = document.createElement('button');
         const folderName = item.name || item.path;
-        const iconClass = item.icon || 'fa-folder';
+        const iconClass = item.icon || getFolderIcon(folderName);
 
         button.type = 'button';
         button.className = 'folder-item';
@@ -290,6 +295,7 @@
 
             if (item.isHome) {
                 showSelectFolderPrompt();
+                setMessage('เลือก folder เพื่อโหลดเอกสาร');
                 updatePager(false);
                 return;
             }
@@ -307,6 +313,24 @@
         });
 
         return button;
+    }
+
+    function getFolderIcon(folderName) {
+        const name = String(folderName || '');
+        const iconMap = [
+            { pattern: /คลังเอกสาร/, icon: 'fa-folder-tree' },
+            { pattern: /บัญชี/, icon: 'fa-briefcase' },
+            { pattern: /การเงิน|เงิน/, icon: 'fa-coins' },
+            { pattern: /สินเชื่อ|เงินกู้|กู้/, icon: 'fa-hand-holding-dollar' },
+            { pattern: /ทะเบียนหุ้น|หุ้น/, icon: 'fa-chart-pie' },
+            { pattern: /นิติกร|กฎหมาย|คดี/, icon: 'fa-scale-balanced' },
+            { pattern: /บริหาร/, icon: 'fa-gears' },
+            { pattern: /ตะกร้า/, icon: 'fa-box-archive' },
+            { pattern: /สหกรณ์|สำนักงาน/, icon: 'fa-building-columns' },
+        ];
+        const matched = iconMap.find((item) => item.pattern.test(name));
+
+        return matched ? matched.icon : 'fa-folder';
     }
 
     async function loadDocuments() {
@@ -532,7 +556,9 @@
         setMessage(`กำลังดึงตำแหน่งไฟล์ ${name || '-'}...`);
 
         try {
-            const payload = await requestJson(`/user-api/alfresco/documents/${encodeURIComponent(id)}/location`);
+            const url = new URL('/user-api/alfresco/documents/location', config.apiBaseUrl);
+            url.searchParams.set('id', id);
+            const payload = await requestJson(`${url.pathname}${url.search}`);
             const parentPath = payload.parentPath || 'ไม่พบข้อมูลตำแหน่งไฟล์';
             setMessage(`ตำแหน่งไฟล์ ${name || '-'}: ${parentPath}`, !payload.parentPath);
         } finally {

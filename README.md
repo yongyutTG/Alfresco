@@ -43,7 +43,7 @@ Content-Type: application/json
 ```http
 GET http://localhost:3001/user-api/alfresco/folders
 GET http://localhost:3001/user-api/alfresco/documents
-GET http://localhost:3001/user-api/alfresco/documents/:id/location
+GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
 ```
 
@@ -85,8 +85,10 @@ GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&q=2
 ตำแหน่งไฟล์แยกเป็น endpoint เฉพาะไฟล์:
 
 ```http
-GET /user-api/alfresco/documents/:id/location
+GET /user-api/alfresco/documents/location?id=DOCUMENT_ID
 ```
+
+หมายเหตุ: ยังมี route เดิม `GET /user-api/alfresco/documents/:id/location` เพื่อรองรับโค้ดเก่า แต่หน้าเว็บใช้ query string เป็นหลัก เพราะ `id` ของ Alfresco บางตัวมีอักขระพิเศษที่ทำให้ path route จับไม่ตรงและอาจขึ้น `Route not found`
 
 ## Security Note
 

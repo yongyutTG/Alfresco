@@ -44,10 +44,11 @@
 
         <div class="user-box">
             <span class="user-label">
-                <!-- <i class="fa fa-user" aria-hidden="true"></i> -->
-                <span>ชื่อผู้ใช้งาน:</span>
+                <i class="fa-solid fa-user" aria-hidden="true"></i>
+                <span>ยินดีต้อนรับ</span>
             </span>
             <span id="userName" class="user-name">-</span>
+            <i class="fa-solid fa-chevron-down user-chevron" aria-hidden="true"></i>
             <button id="logoutBtn" type="button" class="logout-icon-btn" aria-label="ออกจากระบบ" title="ออกจากระบบ">
                 <i class="fa-solid fa-power-off" aria-hidden="true"></i>
             </button>
@@ -75,7 +76,11 @@
         <section class="content">
             <div class="toolbar">
                 <div>
-                    <div class="eyebrow">Current Location</div>
+                    <div class="breadcrumb-line">
+                        <span>หน้าหลัก</span>
+                        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                        <strong id="folderCrumb">หน้าหลัก</strong>
+                    </div>
                     <h1 id="selectedFolder">หน้าหลัก</h1>
                 </div>
                 <button id="reloadFoldersBtn" type="button" class="secondary-btn">
@@ -89,7 +94,10 @@
 
                 <label>
                     <span>ค้นหาชื่อไฟล์</span>
-                    <input id="keyword" type="search">
+                    <span class="search-input-wrap">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                        <input id="keyword" type="search" placeholder="เช่น EVLPS701-0001">
+                    </span>
                 </label>
 
                 <label>
