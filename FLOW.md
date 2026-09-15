@@ -390,7 +390,7 @@ searchForm.addEventListener('submit', async (event) => {
 ถ้าเกิดจากการเลือก folder หรือกด pagination จะเรียก list รายการด้วย `/documents`
 
 ```text
-GET http://localhost:3001/user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
+GET http://localhost:3001/user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=25&skipCount=0
 ```
 
 ### 8.2 กรณีกรอกคำค้น
@@ -406,7 +406,7 @@ findExactThenPartial()
 รอบที่ 1 ค้นชื่อไฟล์แบบตรงตัวก่อน:
 
 ```text
-GET /user-api/alfresco/documents/search?folderPath=<folderPath>&exactName=<keyword>&maxItems=17&skipCount=0
+GET /user-api/alfresco/documents/search?folderPath=<folderPath>&exactName=<keyword>&maxItems=25&skipCount=0
 ```
 
 ถ้า dev หรือหน้าเว็บส่ง `exactName=23017_116969` API จะค้นแบบแม่นโดยลองชื่อ:
@@ -421,7 +421,7 @@ GET /user-api/alfresco/documents/search?folderPath=<folderPath>&exactName=<keywo
 รอบที่ 2 ถ้าไม่เจอ exact หน้าเว็บปัจจุบันยัง fallback ไปค้นแบบใกล้เคียง:
 
 ```text
-GET /user-api/alfresco/documents/search?folderPath=<folderPath>&q=<keyword>&maxItems=17&skipCount=0
+GET /user-api/alfresco/documents/search?folderPath=<folderPath>&q=<keyword>&maxItems=25&skipCount=0
 ```
 
 เส้น `q` ใช้ `LIKE '%keyword%'` จึงอาจแสดงไฟล์ที่ชื่อใกล้เคียงได้
@@ -470,13 +470,25 @@ renderRows(items)
 ข้อมูลที่แสดงในตาราง:
 
 - ชื่อไฟล์
-- ชนิดไฟล์
 - ขนาดไฟล์
-- ผู้สร้าง
-- วันที่สร้าง
+- ปุ่มรายละเอียดไฟล์
 - ปุ่มเปิดไฟล์
 - ปุ่มดาวน์โหลดไฟล์
-- ปุ่มดูตำแหน่งไฟล์
+- ปุ่มแก้ไขชื่อไฟล์ในคอลัมน์จัดการ
+
+ปุ่มแก้ไขชื่อไฟล์จะแสดงเฉพาะไฟล์ที่ API ส่ง `allowRename: true` ถ้าไม่มีสิทธิ์แก้ไขชื่อไฟล์จะไม่แสดงไอคอนดินสอ
+
+คอลัมน์ `ข้อมูลไฟล์` แสดงเป็นปุ่ม `รายละเอียด` เพื่อลดความแน่นของตาราง เมื่อกดแล้วเปิด modal แสดง:
+
+- ชื่อไฟล์
+- ขนาดไฟล์
+- ชนิดไฟล์
+- ผู้สร้าง
+- วันที่สร้าง
+- ผู้แก้ไขล่าสุด
+- วันที่แก้ไขล่าสุด
+- สิทธิ์แก้ไขชื่อไฟล์ผ่าน field `allowRename`
+- ตำแหน่งไฟล์
 
 ปุ่มเปิดไฟล์จะเก็บ:
 
@@ -485,7 +497,7 @@ data-id="DOCUMENT_ID"
 data-name="FILE_NAME"
 ```
 
-ปุ่มดูตำแหน่งไฟล์จะเรียก API แยกเฉพาะไฟล์นั้น เพื่อไม่ให้รายการหลักโหลดช้า:
+ตำแหน่งไฟล์ใน modal รายละเอียดจะเรียก API แยกเฉพาะไฟล์นั้น เพื่อไม่ให้รายการหลักโหลดช้า:
 
 ```text
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
@@ -503,9 +515,73 @@ GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 }
 ```
 
-ถ้าหาตำแหน่งไม่ได้ API จะตอบ `parentPath: null` และหน้าเว็บจะแสดงข้อความว่าไม่พบข้อมูลตำแหน่งไฟล์
+ถ้าหาตำแหน่งไม่ได้ API จะตอบ `parentPath: null` และ modal จะแสดงข้อความว่าไม่พบข้อมูลตำแหน่งไฟล์
 
-## 10. เปิดไฟล์ PDF
+## 10. แก้ไขชื่อไฟล์
+
+ไฟล์:
+
+```text
+app/Views/documents/index.php
+public/assets/js/direct-documents.js
+public/assets/css/app.css
+```
+
+UI:
+
+```text
+กดไอคอนดินสอในคอลัมน์จัดการ
+ -> แสดงเฉพาะเมื่อ `allowRename: true`
+ -> เปิด modal แก้ไขชื่อไฟล์
+ -> แสดงชื่อไฟล์เดิม
+ -> กรอกชื่อหลักใหม่โดยไม่ต้องพิมพ์นามสกุลไฟล์
+ -> ระบบเติมนามสกุลเดิมก่อนส่ง API
+ -> กดบันทึก หรือ Enter
+```
+
+API ที่เรียก:
+
+```text
+PATCH http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
+```
+
+หน้าเว็บส่ง id ผ่าน query string เพื่อเก็บ id เต็มของ Alfresco เช่น `uuid;1.0` และเลี่ยงปัญหา `Route not found` จากอักขระพิเศษใน URL path
+
+Body:
+
+```json
+{
+  "name": "new-file-name.pdf"
+}
+```
+
+Validation ฝั่งหน้าเว็บ:
+
+```text
+ชื่อไฟล์ต้องไม่ว่าง
+ชื่อไฟล์ต้องไม่มี / หรือ \
+ถ้าชื่อใหม่เหมือนชื่อเดิม จะไม่ยิง API
+```
+
+หลังบันทึกสำเร็จ:
+
+```text
+PATCH rename สำเร็จ
+ -> เคลียร์คำค้น
+ -> state.page = 1
+ -> loadDocuments({ allowList: true, refresh: true })
+ -> โหลดรายการของ folder ปัจจุบันใหม่
+ -> ปิด modal แก้ไขชื่อไฟล์
+ -> แสดงข้อความสำเร็จ
+```
+
+`refresh: true` จะเพิ่ม query `_=<timestamp>` ตอนเรียก list documents เพื่อช่วยกัน response เก่าค้างจาก cache/proxy:
+
+```text
+GET /user-api/alfresco/documents?folderPath=<folderPath>&maxItems=25&skipCount=0&_=<timestamp>
+```
+
+## 11. เปิดไฟล์ PDF
 
 ไฟล์:
 
@@ -559,7 +635,7 @@ blob:http://localhost:8086/xxxx
 
 อันนี้เป็นพฤติกรรมปกติของ frontend ที่เรียก API ตรงพร้อม Bearer token
 
-## 11. Logout
+## 12. Logout
 
 ไฟล์:
 
@@ -590,7 +666,7 @@ window.location.href = config.loginUrl;
  -> redirect ไป /login
 ```
 
-## 12. API ที่ frontend เรียก
+## 13. API ที่ frontend เรียก
 
 Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหมด
 
@@ -602,9 +678,10 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Search exact name | `GET` | `/user-api/alfresco/documents/search?folderPath=...&exactName=...` | Bearer token |
 | Search partial | `GET` | `/user-api/alfresco/documents/search?folderPath=...&q=...` | Bearer token |
 | Get file location | `GET` | `/user-api/alfresco/documents/location?id=...` | Bearer token |
+| Rename file | `PATCH` | `/user-api/alfresco/documents?id=...` | Bearer token |
 | Open content | `GET` | `/user-api/alfresco/documents/:id/content?name=...` | Bearer token |
 
-## 13. Token อยู่ที่ไหน
+## 14. Token อยู่ที่ไหน
 
 Token ถูกเก็บไว้ใน browser:
 
@@ -674,7 +751,7 @@ public/assets/js/direct-documents.js
  -> โหลด folder ตามสิทธิ์
  -> เลือก folder แล้วโหลดเอกสารทันที
  -> ค้นหา exactName ก่อน ถ้าไม่เจอค่อย q
- -> ดูตำแหน่งไฟล์ผ่าน endpoint แยกเมื่อกดไอคอนตำแหน่ง
+ -> ดูรายละเอียดไฟล์ผ่าน modal และโหลดตำแหน่งไฟล์ด้วย endpoint แยก
  -> เปิดไฟล์ด้วย fetch + blob
  -> logout
 ```

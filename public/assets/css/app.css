@@ -153,7 +153,7 @@ label span {
     margin-bottom: 6px;
     color: #27476f;
     font-size: 16px;
-    /* font-weight: 800; */
+    font-weight: 400;
 }
 
 .login-input {
@@ -191,7 +191,7 @@ button,
     color: #fff;
     background: var(--accent);
     font: inherit;
-    font-weight: 400;
+    font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
@@ -220,6 +220,7 @@ button:disabled {
     color: var(--text);
     background: #edf6fa;
     border: 1px solid var(--line);
+    font-weight: 400;
 }
 
 .secondary-btn:hover {
@@ -316,12 +317,127 @@ button:disabled {
     color: var(--primary);
 }
 
+.rename-dialog,
+.file-info-dialog {
+    text-align: left;
+}
+
+.rename-dialog h2,
+.file-info-dialog h2 {
+    color: var(--primary);
+    text-align: center;
+}
+
+.rename-icon,
+.file-info-icon {
+    width: 54px;
+    height: 54px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 16px;
+    border: 1px solid #c8e0ec;
+    border-radius: 50%;
+    color: var(--primary);
+    background: var(--primary-soft);
+    font-size: 24px;
+}
+
 .session-dialog p {
     max-width: 340px;
     margin: 0 auto 24px;
     color: var(--muted);
     font-size: 15px;
     line-height: 1.6;
+}
+
+.rename-current-name {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #f8fbff;
+    word-break: break-word;
+}
+
+.rename-field {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 18px;
+    color: #223a61;
+    font-size: 14px;
+}
+
+.rename-field input {
+    width: 100%;
+}
+
+.rename-input-group {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: #fff;
+}
+
+.rename-input-group:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(47, 111, 146, 0.12);
+}
+
+.rename-input-group input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    border-radius: 0;
+}
+
+.rename-extension {
+    flex: 0 0 auto;
+    padding: 0 12px;
+    color: #60718f;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.rename-extension[hidden] {
+    display: none;
+}
+
+.rename-dialog .session-actions button,
+.file-info-dialog .session-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.file-info-list {
+    display: grid;
+    gap: 8px;
+    margin: 0 0 22px;
+}
+
+.file-info-list div {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 9px 0;
+    border-bottom: 1px solid #edf1f6;
+}
+
+.file-info-list dt {
+    color: #60718f;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.file-info-list dd {
+    margin: 0;
+    color: #17315c;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .session-actions {
@@ -499,13 +615,6 @@ button:disabled {
     border-color: #b8efd8;
 }
 
-.location-action-btn:hover,
-.location-action-btn:focus-visible {
-    color: var(--primary);
-    background: var(--primary-soft);
-    border-color: #bfd4e8;
-}
-
 .row-actions {
     display: flex;
     gap: 6px;
@@ -595,6 +704,7 @@ button:disabled {
     color: var(--primary);
     background: #e0f0f6;
     border-color: #beddea;
+    font-weight: 500;
     box-shadow: 0 8px 20px rgba(47, 111, 146, 0.12);
 }
 
@@ -739,8 +849,25 @@ button:disabled {
 
 table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
-    min-width: 1080px;
+    min-width: 980px;
+}
+
+.col-file-name {
+    width: 50%;
+}
+
+.col-file-size {
+    width: 10%;
+}
+
+.col-file-meta {
+    width: 18%;
+}
+
+.col-file-actions {
+    width: 22%;
 }
 
 th,
@@ -749,6 +876,8 @@ td {
     border-bottom: 1px solid var(--line);
     text-align: left;
     vertical-align: top;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 th {
@@ -758,6 +887,7 @@ th {
     color: #27476f;
     background: #f7fbff;
     font-size: 13px;
+    font-weight: 500;
 }
 
 .sort-header {
@@ -801,35 +931,45 @@ tbody tr:hover {
     color: #b42318;
 }
 
-.file-meta {
-    display: grid;
-    gap: 5px;
-    color: var(--muted);
-    font-size: 12px;
+.file-info-btn {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid #c8e0ec;
+    border-radius: 999px;
+    padding: 0 12px;
+    color: var(--primary);
+    background: var(--primary-soft);
+    font-size: 13px;
+    font-weight: 400;
+    box-shadow: none;
 }
 
-.file-meta span {
+.file-info-btn:hover,
+.file-info-btn:focus-visible {
+    color: #fff;
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.rename-file-btn {
     display: inline-flex;
-    gap: 6px;
     align-items: center;
+    justify-content: center;
+    box-shadow: none;
+}
+
+.rename-file-btn:hover,
+.rename-file-btn:focus-visible {
+    color: var(--primary-dark);
+    background: var(--primary-soft);
 }
 
 .muted {
     color: var(--muted);
     font-size: 12px;
-}
-
-.file-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    min-height: 26px;
-    border-radius: 999px;
-    padding: 0 10px;
-    color: #315b8d;
-    background: var(--accent-soft);
-    font-size: 12px;
-    font-weight: 400;
 }
 
 .pagination {
@@ -873,6 +1013,7 @@ tbody tr:hover {
     background: transparent;
     gap: 5px;
     font-size: 14px;
+    font-weight: 400;
 }
 
 .page-actions button:hover,
@@ -950,7 +1091,7 @@ body {
 
 .user-name {
     color: #13264e;
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .user-chevron {
@@ -1017,6 +1158,7 @@ body {
     background: transparent;
     color: #13264e;
     font-size: 13px;
+    font-weight: 400;
     outline: 0;
     box-shadow: none;
     transform: none;
@@ -1044,6 +1186,7 @@ body {
     color: #fff;
     background: linear-gradient(135deg, #3d88ad 0%, #2f6f92 100%);
     border-color: transparent;
+    font-weight: 500;
     box-shadow: none;
     transform: none;
 }
@@ -1134,6 +1277,7 @@ body {
 #searchForm label > span:first-child {
     margin-bottom: 9px;
     color: #223a61;
+    font-weight: 400;
 }
 
 #searchForm label:first-of-type {
@@ -1170,6 +1314,7 @@ select {
 .actions button {
     min-height: 40px;
     padding: 0 16px;
+    font-weight: 500;
     box-shadow: 0 12px 24px rgba(47, 111, 146, 0.18);
 }
 
@@ -1182,6 +1327,7 @@ select {
     color: #314363;
     background: #f8fafc;
     border-color: #d4deec;
+    font-weight: 400;
     box-shadow: none;
 }
 
@@ -1208,7 +1354,7 @@ select {
 }
 
 table {
-    min-width: 1120px;
+    min-width: 980px;
 }
 
 th {
@@ -1232,10 +1378,18 @@ td {
 }
 
 .file-name {
+    display: flex;
     align-items: center;
     gap: 8px;
     color: #142b56;
     font-weight: 500;
+    min-width: 0;
+}
+
+.file-name span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .file-name i {
@@ -1245,32 +1399,14 @@ td {
     color: #ef232c;
 }
 
-.file-badge {
-    min-height: 26px;
-    padding: 0 10px;
-    color: #315b8d;
-    background: #edf1f6;
-    font-size: 12px;
-}
-
-.file-meta {
-    gap: 3px;
-    color: #34486c;
-    font-size: 12px;
-}
-
-.file-meta span {
-    gap: 12px;
-}
-
-.file-meta i {
-    width: 18px;
-    color: #526684;
+.rename-file-btn i {
+    color: inherit;
 }
 
 .row-actions {
     gap: 6px;
     justify-content: center;
+    white-space: nowrap;
 }
 
 .icon-action-btn {
@@ -1283,11 +1419,6 @@ td {
 .download-action-btn {
     color: #0f9f6e;
     background: #e9fbf3;
-}
-
-.location-action-btn {
-    color: #435574;
-    background: #f0f3f8;
 }
 
 .loading-spinner-row {

@@ -45,6 +45,7 @@ GET http://localhost:3001/user-api/alfresco/folders
 GET http://localhost:3001/user-api/alfresco/documents
 GET http://localhost:3001/user-api/alfresco/documents/search
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
+PATCH http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
 ```
 
@@ -79,10 +80,24 @@ Authorization: Bearer <accessToken>
 เส้น list รายการเอกสาร ใช้ตอนเลือก folder หรือเปลี่ยนหน้า pagination:
 
 ```http
-GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=17&skipCount=0
+GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&maxItems=25&skipCount=0
 ```
 
 เส้นรายการเอกสารไม่ดึง `parentPath` อัตโนมัติ เพื่อให้โหลดเร็ว
+
+คอลัมน์ `ข้อมูลไฟล์` ในตารางแสดงเป็นปุ่ม `รายละเอียด` เมื่อกดแล้วเปิด modal โดยใช้ข้อมูล:
+
+```text
+name
+size
+mimeType
+createdBy
+creationDate
+lastModifiedBy
+lastModificationDate
+allowRename สำหรับควบคุมการแสดงไอคอนแก้ไขชื่อไฟล์
+parentPath จาก endpoint /documents/location
+```
 
 การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
 
@@ -110,6 +125,25 @@ GET /user-api/alfresco/documents/location?id=DOCUMENT_ID
 ```
 
 หมายเหตุ: ยังมี route เดิม `GET /user-api/alfresco/documents/:id/location` เพื่อรองรับโค้ดเก่า แต่หน้าเว็บใช้ query string เป็นหลัก เพราะ `id` ของ Alfresco บางตัวมีอักขระพิเศษที่ทำให้ path route จับไม่ตรงและอาจขึ้น `Route not found`
+
+การแก้ไขชื่อไฟล์เริ่มจากกดไอคอนดินสอในคอลัมน์ `จัดการ` จากนั้นหน้าเว็บจะเปิด modal แก้ชื่อ ผู้ใช้แก้เฉพาะชื่อหลักได้โดยไม่ต้องพิมพ์นามสกุลไฟล์ ระบบจะรักษานามสกุลเดิมไว้แล้วเรียก API:
+
+ไอคอนดินสอจะแสดงเฉพาะไฟล์ที่ API ส่ง `allowRename: true` เท่านั้น ถ้า user ไม่มีสิทธิ์แก้ไขชื่อไฟล์ หน้าเว็บจะไม่แสดงไอคอนนี้ แต่ backend ยังต้องตรวจสิทธิ์จริงตอนเรียก PATCH เสมอ
+
+```http
+PATCH /user-api/alfresco/documents?id=DOCUMENT_ID
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "new-file-name.pdf"
+}
+```
+
+หลังบันทึกสำเร็จ หน้าเว็บจะเคลียร์คำค้น กลับไปหน้า 1 แล้วโหลดรายการเอกสารของ folder ปัจจุบันใหม่ด้วย `loadDocuments({ allowList: true, refresh: true })` เพื่อให้เห็นชื่อใหม่ทันที
+
+หน้าเว็บส่ง id ผ่าน query string เพื่อเก็บ id เต็มของ Alfresco เช่น `uuid;1.0` และเลี่ยงปัญหา `Route not found` จากอักขระพิเศษใน URL path
 
 ## Security Note
 

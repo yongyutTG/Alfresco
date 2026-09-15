@@ -33,6 +33,43 @@
         </div>
     </div>
 
+    <div id="renameFileModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="renameFileTitle" hidden>
+        <form id="renameFileForm" class="session-dialog rename-dialog">
+            <div class="rename-icon" aria-hidden="true">
+                <i class="fa-regular fa-pen-to-square"></i>
+            </div>
+            <h2 id="renameFileTitle">แก้ไขชื่อไฟล์</h2>
+            <p id="renameFileCurrentName" class="rename-current-name">-</p>
+            <label class="rename-field">
+                <span>ชื่อไฟล์ใหม่</span>
+                <span class="rename-input-group">
+                    <input id="renameFileInput" type="text" autocomplete="off" required>
+                    <span id="renameFileExtension" class="rename-extension"></span>
+                </span>
+            </label>
+            <div class="session-actions split-actions">
+                <button id="renameFileSaveBtn" type="submit">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                    <span>บันทึก</span>
+                </button>
+                <button id="renameFileCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="fileInfoModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle" hidden>
+        <div class="session-dialog file-info-dialog">
+            <div class="file-info-icon" aria-hidden="true">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <h2 id="fileInfoTitle">รายละเอียดไฟล์</h2>
+            <dl id="fileInfoList" class="file-info-list"></dl>
+            <div class="session-actions">
+                <button id="fileInfoCloseBtn" type="button" class="secondary-btn">ปิด</button>
+            </div>
+        </div>
+    </div>
+
     <header class="topbar">
         <a class="app-title" href="<?= site_url('documents') ?>">
             <span class="brand-mark small">A</span>
@@ -128,6 +165,12 @@
 
             <div class="table-wrap">
                 <table>
+                    <colgroup>
+                        <col class="col-file-name">
+                        <col class="col-file-size">
+                        <col class="col-file-meta">
+                        <col class="col-file-actions">
+                    </colgroup>
                     <thead>
                         <tr>
                             <th>
@@ -136,7 +179,6 @@
                                     <i class="fa-solid fa-arrow-down-a-z" aria-hidden="true"></i>
                                 </button>
                             </th>
-                            <th>ชนิดไฟล์</th>
                             <th>ขนาด</th>
                             <th>ข้อมูลไฟล์</th>
                             <th>จัดการ</th>
@@ -144,7 +186,7 @@
                     </thead>
                     <tbody id="documentRows">
                         <tr>
-                            <td colspan="5" class="empty-state-cell">
+                            <td colspan="4" class="empty-state-cell">
                                 <div class="empty-state">
                                     <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                                     <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>

@@ -59,6 +59,17 @@
     const logoutConfirmModal = document.getElementById('logoutConfirmModal');
     const logoutConfirmBtn = document.getElementById('logoutConfirmBtn');
     const logoutCancelBtn = document.getElementById('logoutCancelBtn');
+    const renameFileModal = document.getElementById('renameFileModal');
+    const renameFileForm = document.getElementById('renameFileForm');
+    const renameFileCurrentName = document.getElementById('renameFileCurrentName');
+    const renameFileInput = document.getElementById('renameFileInput');
+    const renameFileExtension = document.getElementById('renameFileExtension');
+    const renameFileSaveBtn = document.getElementById('renameFileSaveBtn');
+    const renameFileCancelBtn = document.getElementById('renameFileCancelBtn');
+    const fileInfoModal = document.getElementById('fileInfoModal');
+    const fileInfoList = document.getElementById('fileInfoList');
+    const fileInfoCloseBtn = document.getElementById('fileInfoCloseBtn');
+    let activeRename = null;
 
     const savedUsername = localStorage.getItem(storage.username) || '-';
     if (userName) {
@@ -169,14 +180,15 @@
         });
     }
 
-    async function requestJson(path) {
+    async function requestJson(path, options = {}) {
         if (hasIdleExpired()) {
             expireSession();
             throw new Error('Session หมดอายุ กรุณา login ใหม่');
         }
 
         const response = await fetch(apiUrl(path), {
-            headers: authHeaders(),
+            ...options,
+            headers: authHeaders(options.headers || {}),
         });
         const data = await response.json().catch(() => ({}));
 
@@ -193,6 +205,16 @@
         }
 
         return data;
+    }
+
+    async function patchJson(path, body) {
+        return requestJson(path, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+        });
     }
 
     async function requestFileLocation(id) {
@@ -282,7 +304,7 @@
     function showLoadingSpinner() {
         rows.innerHTML = `
             <tr>
-                <td colspan="5" class="loading-spinner-row">
+                <td colspan="4" class="loading-spinner-row">
                     <div id="loading-spinner" class="loading-spinner text-center my-4">
                         <i class="fa-solid fa-spinner fa-spin loading-spinner-icon"></i>
                         <p class="loading-spinner-text">กำลังโหลดข้อมูล...</p>
@@ -331,7 +353,7 @@
                 await loadDocuments({ allowList: true });
             } catch (error) {
                 setMessage(error.message, true);
-                rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+                rows.innerHTML = '<tr><td colspan="4" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
                 updatePager(false);
             }
         });
@@ -362,6 +384,7 @@
         const skipCount = (state.page - 1) * maxItems;
         const keyword = keywordInput.value.trim();
         const allowList = Boolean(options.allowList);
+        const refreshKey = options.refresh ? String(Date.now()) : '';
 
         if (state.isHomeSelected) {
             state.currentItemCount = 0;
@@ -391,6 +414,9 @@
             url.searchParams.set('folderPath', state.folderPath);
             url.searchParams.set('maxItems', String(maxItems));
             url.searchParams.set('skipCount', String(skipCount));
+            if (refreshKey) {
+                url.searchParams.set('_', refreshKey);
+            }
             payload = await requestJson(`${url.pathname}${url.search}`);
         }
 
@@ -432,7 +458,7 @@
 
     function renderRows(items) {
         if (!items.length) {
-            rows.innerHTML = '<tr><td colspan="5" class="muted">ไม่มีข้อมูล</td></tr>';
+            rows.innerHTML = '<tr><td colspan="4" class="muted">ไม่มีข้อมูล</td></tr>';
             return;
         }
 
@@ -440,6 +466,20 @@
             const id = escapeHtml(item.id || '');
             const name = escapeHtml(item.name || '-');
             const openName = escapeHtml(item.name || 'file.pdf');
+            const sizeText = escapeHtml(formatSize(item.size));
+            const createdBy = escapeHtml(item.createdBy || '-');
+            const creationDate = escapeHtml(formatDate(item.creationDate));
+            const lastModifiedBy = escapeHtml(item.lastModifiedBy || '-');
+            const lastModificationDate = escapeHtml(formatDate(item.lastModificationDate));
+            const mimeType = escapeHtml(item.mimeType || '-');
+            const allowRename = item.allowRename === true;
+            const renameAction = allowRename
+                ? `
+                            <button type="button" class="rename-file-btn icon-action-btn rename-action-btn" data-id="${id}" data-name="${openName}" data-allow-rename="true" aria-label="แก้ไขชื่อไฟล์" title="แก้ไขชื่อไฟล์">
+                                <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
+                            </button>
+                `
+                : '';
 
             return `
                 <tr>
@@ -449,24 +489,25 @@
                             <span>${name}</span>
                         </div>
                     </td>
+                    <td>${sizeText}</td>
                     <td>
-                        <span class="file-badge">
-                            <i class="fa-solid fa-tag" aria-hidden="true"></i>
-                            <span>${escapeHtml(item.mimeType || '-')}</span>
-                        </span>
-                    </td>
-                    <td>${formatSize(item.size)}</td>
-                    <td>
-                        <div class="file-meta">
-                            <span>
-                                <i class="fa-regular fa-user" aria-hidden="true"></i>
-                                ผู้สร้าง: ${escapeHtml(item.createdBy || '-')}
-                            </span>
-                            <span>
-                                <i class="fa-regular fa-calendar" aria-hidden="true"></i>
-                                วันที่สร้าง: ${escapeHtml(formatDate(item.creationDate))}
-                            </span>
-                        </div>
+                        <button
+                            type="button"
+                            class="file-info-btn"
+                            data-id="${id}"
+                            data-name="${openName}"
+                            data-size="${sizeText}"
+                            data-mime-type="${mimeType}"
+                            data-created-by="${createdBy}"
+                            data-creation-date="${creationDate}"
+                            data-last-modified-by="${lastModifiedBy}"
+                            data-last-modification-date="${lastModificationDate}"
+                            aria-label="ดูรายละเอียดไฟล์ ${name}"
+                            title="ดูรายละเอียดไฟล์"
+                        >
+                            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            <span>รายละเอียด</span>
+                        </button>
                     </td>
                     <td>
                         <div class="row-actions">
@@ -476,9 +517,7 @@
                             <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดาวน์โหลดไฟล์" title="ดาวน์โหลดไฟล์">
                                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="location-file-btn icon-action-btn location-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดูตำแหน่งไฟล์" title="ดูตำแหน่งไฟล์">
-                                <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                            </button>
+${renameAction}
                         </div>
                     </td>
                 </tr>
@@ -568,43 +607,174 @@
         URL.revokeObjectURL(objectUrl);
     }
 
-    async function showFileLocation(id, name, button) {
+    async function showFileInfoModal(button) {
+        if (!fileInfoModal || !fileInfoList) {
+            setMessage('ไม่พบ modal รายละเอียดไฟล์', true);
+            return;
+        }
+
+        const details = [
+            ['ชื่อไฟล์', button.dataset.name || '-'],
+            ['ขนาดไฟล์', button.dataset.size || '-'],
+            ['ชนิดไฟล์', button.dataset.mimeType || '-'],
+            ['ผู้สร้าง', button.dataset.createdBy || '-'],
+            ['วันที่สร้าง', button.dataset.creationDate || '-'],
+            ['ผู้แก้ไขล่าสุด', button.dataset.lastModifiedBy || '-'],
+            ['วันที่แก้ไขล่าสุด', button.dataset.lastModificationDate || '-'],
+            ['ตำแหน่งไฟล์', 'กำลังโหลด...'],
+        ];
+
+        fileInfoList.innerHTML = details.map(([label, value]) => `
+            <div data-detail-key="${escapeHtml(label)}">
+                <dt>${escapeHtml(label)}</dt>
+                <dd>${escapeHtml(value)}</dd>
+            </div>
+        `).join('');
+
+        fileInfoModal.hidden = false;
+        fileInfoCloseBtn?.focus();
+
+        const locationValue = fileInfoList.querySelector('[data-detail-key="ตำแหน่งไฟล์"] dd');
+
+        if (!locationValue) {
+            return;
+        }
+
+        try {
+            const payload = await requestFileLocation(button.dataset.id);
+            locationValue.textContent = payload.parentPath || 'ไม่พบข้อมูลตำแหน่งไฟล์';
+        } catch (error) {
+            locationValue.textContent = error.message || 'โหลดตำแหน่งไฟล์ไม่สำเร็จ';
+        }
+    }
+
+    function hideFileInfoModal() {
+        if (fileInfoModal) {
+            fileInfoModal.hidden = true;
+        }
+    }
+
+    function showRenameModal(id, currentName) {
         if (!id) {
             throw new Error('ไม่พบ id ของไฟล์');
         }
 
-        const icon = button?.querySelector('i');
-        const originalIconClass = icon?.className;
-
-        if (button) {
-            button.disabled = true;
+        if (!renameFileModal || !renameFileInput || !renameFileCurrentName) {
+            setMessage('ไม่พบ modal แก้ไขชื่อไฟล์', true);
+            return;
         }
 
-        if (icon) {
-            icon.className = 'fa-solid fa-spinner fa-spin';
+        const nameParts = splitFileName(currentName || '');
+        activeRename = { id, currentName: currentName || '', extension: nameParts.extension };
+        renameFileCurrentName.textContent = currentName || '-';
+        renameFileInput.value = nameParts.baseName;
+        if (renameFileExtension) {
+            renameFileExtension.textContent = nameParts.extension;
+            renameFileExtension.hidden = !nameParts.extension;
+        }
+        renameFileModal.hidden = false;
+
+        window.setTimeout(() => {
+            renameFileInput.focus();
+            renameFileInput.select();
+        }, 0);
+    }
+
+    function hideRenameModal() {
+        if (renameFileModal) {
+            renameFileModal.hidden = true;
         }
 
-        setMessage(`กำลังดึงตำแหน่งไฟล์ ${name || '-'}...`);
+        activeRename = null;
+    }
 
-        try {
-            const payload = await requestFileLocation(id);
-            const parentPath = payload.parentPath || 'ไม่พบข้อมูลตำแหน่งไฟล์';
-            setMessage(`ตำแหน่งไฟล์ ${name || '-'}: ${parentPath}`, !payload.parentPath);
-        } finally {
-            if (icon && originalIconClass) {
-                icon.className = originalIconClass;
-            }
-
-            if (button) {
-                button.disabled = false;
-            }
+    function setRenameModalBusy(isBusy) {
+        if (renameFileInput) {
+            renameFileInput.disabled = isBusy;
         }
+
+        if (renameFileSaveBtn) {
+            renameFileSaveBtn.disabled = isBusy;
+            renameFileSaveBtn.innerHTML = isBusy
+                ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลังบันทึก</span>'
+                : '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>บันทึก</span>';
+        }
+
+        if (renameFileCancelBtn) {
+            renameFileCancelBtn.disabled = isBusy;
+        }
+    }
+
+    function splitFileName(fileName) {
+        const value = String(fileName || '');
+        const dotIndex = value.lastIndexOf('.');
+
+        if (dotIndex <= 0 || dotIndex === value.length - 1) {
+            return { baseName: value, extension: '' };
+        }
+
+        return {
+            baseName: value.slice(0, dotIndex),
+            extension: value.slice(dotIndex),
+        };
+    }
+
+    function buildRenameFileName(baseName, extension) {
+        const trimmedBaseName = baseName.trim();
+
+        if (!extension) {
+            return trimmedBaseName;
+        }
+
+        if (!trimmedBaseName) {
+            return '';
+        }
+
+        return trimmedBaseName.toLowerCase().endsWith(extension.toLowerCase())
+            ? trimmedBaseName
+            : `${trimmedBaseName}${extension}`;
+    }
+
+    async function renameFile(id, currentName, nextName) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        const trimmedName = nextName.trim();
+
+        if (!trimmedName) {
+            setMessage('กรุณากรอกชื่อไฟล์', true);
+            renameFileInput?.focus();
+            return false;
+        }
+
+        if (trimmedName === currentName) {
+            setMessage('ชื่อไฟล์ไม่มีการเปลี่ยนแปลง');
+            return false;
+        }
+
+        if (/[\\/]/.test(trimmedName)) {
+            setMessage('ชื่อไฟล์ต้องไม่มีเครื่องหมาย / หรือ \\', true);
+            renameFileInput?.focus();
+            return false;
+        }
+
+        setMessage(`กำลังแก้ไขชื่อไฟล์ ${currentName || '-'}...`);
+
+        const url = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
+        url.searchParams.set('id', id);
+        const payload = await patchJson(`${url.pathname}${url.search}`, { name: trimmedName });
+        keywordInput.value = '';
+        state.page = 1;
+        await loadDocuments({ allowList: true, refresh: true });
+        setMessage(payload.message || `แก้ไขชื่อไฟล์เป็น ${trimmedName} แล้ว`);
+        return true;
     }
 
     function showSelectFolderPrompt() {
         rows.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state-cell">
+                <td colspan="4" class="empty-state-cell">
                     <div class="empty-state">
                         <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                         <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>
@@ -759,7 +929,7 @@
 
         loadDocuments({ allowList: true }).catch((error) => {
             setMessage(error.message, true);
-            rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+            rows.innerHTML = '<tr><td colspan="4" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
             updatePager(false);
         });
     });
@@ -792,10 +962,89 @@
         });
     }
 
+    if (fileInfoCloseBtn) {
+        fileInfoCloseBtn.addEventListener('click', () => hideFileInfoModal());
+    }
+
+    if (fileInfoModal) {
+        fileInfoModal.addEventListener('click', (event) => {
+            if (event.target === fileInfoModal) {
+                hideFileInfoModal();
+            }
+        });
+    }
+
+    if (renameFileForm) {
+        renameFileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!activeRename || !renameFileInput) {
+                return;
+            }
+
+            setRenameModalBusy(true);
+
+            try {
+                const nextName = buildRenameFileName(renameFileInput.value, activeRename.extension || '');
+                const didRename = await renameFile(activeRename.id, activeRename.currentName, nextName);
+
+                if (didRename) {
+                    hideRenameModal();
+                }
+            } catch (error) {
+                setMessage(error.message, true);
+            } finally {
+                setRenameModalBusy(false);
+            }
+        });
+    }
+
+    if (renameFileCancelBtn) {
+        renameFileCancelBtn.addEventListener('click', () => hideRenameModal());
+    }
+
+    if (renameFileModal) {
+        renameFileModal.addEventListener('click', (event) => {
+            if (event.target === renameFileModal) {
+                hideRenameModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && renameFileModal && !renameFileModal.hidden) {
+            hideRenameModal();
+        }
+
+        if (event.key === 'Escape' && fileInfoModal && !fileInfoModal.hidden) {
+            hideFileInfoModal();
+        }
+    });
+
     rows.addEventListener('click', (event) => {
         const openButton = event.target.closest('.open-file-btn');
         const downloadButton = event.target.closest('.download-file-btn');
-        const locationButton = event.target.closest('.location-file-btn');
+        const infoButton = event.target.closest('.file-info-btn');
+        const renameButton = event.target.closest('.rename-file-btn');
+
+        if (renameButton) {
+            try {
+                if (renameButton.dataset.allowRename !== 'true') {
+                    setMessage('คุณไม่มีสิทธิ์แก้ไขชื่อไฟล์นี้', true);
+                    return;
+                }
+
+                showRenameModal(renameButton.dataset.id, renameButton.dataset.name);
+            } catch (error) {
+                setMessage(error.message, true);
+            }
+            return;
+        }
+
+        if (infoButton) {
+            showFileInfoModal(infoButton).catch((error) => setMessage(error.message, true));
+            return;
+        }
 
         if (openButton) {
             openFile(openButton.dataset.id, openButton.dataset.name).catch((error) => setMessage(error.message, true));
@@ -807,9 +1056,6 @@
             return;
         }
 
-        if (locationButton) {
-            showFileLocation(locationButton.dataset.id, locationButton.dataset.name, locationButton).catch((error) => setMessage(error.message, true));
-        }
     });
 
     if (sortNameBtn) {
