@@ -60,8 +60,26 @@ Authorization: Bearer <accessToken>
 หน้า documents แยกการทำงานเป็น 2 แบบ:
 
 ```text
+โหลดหน้า documents
+-> แสดง หน้าหลัก และ คลังเอกสาร ก่อน
+-> เรียก /folders/tree ครั้งเดียว เพื่อโหลด folder หลักและ folder ย่อยทั้งหมดตามสิทธิ์
+-> ระหว่างโหลดจะแสดงสถานะ loading เฉพาะใน sidebar
+-> หลังโหลด tree จะแสดงเฉพาะ folder หลักก่อน ส่วน folder ย่อยจะแสดงเมื่อ user กดแถบ folder หรือ chevron
+-> ถ้ากด หน้าหลัก จะปิด folder ย่อยทั้งหมด
+-> ถ้ากด คลังเอกสาร จะโหลดเอกสารทั้งหมดในคลัง รวม folder ย่อยทุกชั้น
+-> folder ที่มีลูกจะแสดง chevron เปิด/ปิด
+-> จำ folder ล่าสุดใน sessionStorage และเปิดกลับมาที่ folder เดิมหลัง refresh หน้า
+-> มีปุ่ม ปิดทั้งหมด ใน sidebar สำหรับปิด folder ย่อยทั้งหมด
+
 เลือก folder
--> list เอกสารใน folder ด้วย /documents
+-> กดแถบ folder จะเปิด/ปิด folder ย่อยพร้อมกับ list เอกสารใน folder นั้นด้วย /documents โดยรวมเอกสารใน folder ย่อยด้วย
+-> กด chevron จะเปิด/ปิด folder ย่อยเท่านั้น ไม่โหลดเอกสาร
+-> ถ้าไม่พบเอกสาร จะแสดง empty state ว่าไม่พบเอกสารใน folder นี้หรือไม่พบเอกสารที่ตรงกับคำค้น
+-> ระหว่างโหลดเอกสารจะแสดงข้อความเฉพาะเจาะจง เช่น กำลังโหลดเอกสารใน การเงิน...
+-> badge ใต้ชื่อ folder ถูกปิดไว้ก่อนเพื่อลดความซ้ำกับข้อความสถานะและ pagination
+-> breadcrumb จะแสดงตำแหน่งตามลำดับ เช่น หน้าหลัก > คลังเอกสาร > การเงิน > 2567
+-> breadcrumb แต่ละช่วงคลิกย้อนกลับไปยังตำแหน่งนั้นได้
+-> ปุ่มหลักและปุ่มจัดการมี tooltip/title เพื่อบอกหน้าที่เมื่อเอาเมาส์ชี้
 
 กดปุ่มค้นหา + ไม่กรอกคำค้น
 -> ไม่ยิง API ค้นหา
@@ -90,7 +108,6 @@ GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&max
 ```text
 name
 size
-mimeType
 createdBy
 creationDate
 lastModifiedBy
@@ -98,6 +115,8 @@ lastModificationDate
 allowRename สำหรับควบคุมการแสดงไอคอนแก้ไขชื่อไฟล์
 parentPath จาก endpoint /documents/location
 ```
+
+ส่วน `mimeType` เช่น `application/pdf` แสดงเป็นคอลัมน์ `ชนิดไฟล์` ในตารางรายการเอกสารโดยตรง
 
 การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
 

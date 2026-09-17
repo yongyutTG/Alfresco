@@ -298,17 +298,36 @@ Accept: application/json
 
 หน้าที่:
 
-- ดึง folder ใต้ `/Sites/tg-saving/documentLibrary`
+- แสดง `หน้าหลัก` และ `คลังเอกสาร` ก่อน
+- เรียก `/user-api/alfresco/folders/tree?path=<rootPath>` ครั้งเดียวตอนโหลดหน้า เพื่อโหลด folder หลักและ folder ย่อยทั้งหมดตามสิทธิ์
+- ระหว่างโหลด tree จะแสดง loading state เฉพาะใน sidebar
+- ยังไม่วนเรียก folder ย่อยเองจาก browser ทีละ path
 - แสดงเฉพาะ folder ที่ user มีสิทธิ์เห็นตาม Alfresco
-- นำ folder มาแสดงใน sidebar ด้านซ้าย
+- หลังโหลด tree จะแสดงเฉพาะ folder หลักระดับแรกก่อน
+- เมื่อ user กดแถบ folder หรือ chevron ของ folder หลัก จึงค่อยแสดง folder ย่อยใต้ folder นั้น โดยเยื้องตามระดับ
+- ถ้า user กดแถบ folder หรือ chevron ซ้ำ จะปิด folder ย่อยใต้ folder นั้น
+- ถ้า user กด `หน้าหลัก` จะปิด folder ย่อยทั้งหมด
+- ถ้า user กดแถบ `คลังเอกสาร` จะโหลดเอกสารทั้งหมดในคลัง รวม folder ย่อยทุกชั้น
+- folder ที่มีลูกจะแสดง chevron เพื่อบอกสถานะเปิด/ปิด
+- จดจำ folder ล่าสุดไว้ใน `sessionStorage` และเปิดกลับมาที่ folder เดิมหลัง refresh หน้า
+- มีปุ่ม `ปิดทั้งหมด` ใน sidebar สำหรับปิด folder ย่อยทั้งหมดโดยไม่ล้างผลเอกสาร
 
 สรุป flow:
 
 ```text
 direct-documents.js
  -> loadFolders()
- -> GET /user-api/alfresco/folders
- -> render ปุ่ม folder ด้านซ้าย
+ -> render ปุ่ม หน้าหลัก และ คลังเอกสาร
+ -> GET /user-api/alfresco/folders/tree?path=<rootPath>
+ -> render เฉพาะ folder หลักระดับแรก
+ -> restore folder ล่าสุดจาก sessionStorage ถ้ามี
+ -> user กดแถบ folder
+ -> reveal/collapse folder ย่อยใต้ parent path ของตัวเอง
+ -> GET /user-api/alfresco/documents?folderPath=<folderPath>
+ -> user กด chevron
+ -> reveal/collapse folder ย่อยใต้ parent path ของตัวเอง โดยไม่โหลดเอกสาร
+ -> user กด หน้าหลัก
+ -> collapse folder ย่อยทั้งหมด
 ```
 
 ## 7. เลือก Folder
@@ -333,6 +352,9 @@ button.addEventListener('click', async () => {
     state.page = 1;
     setSelectedFolder(item.path);
     keywordInput.value = '';
+    // folder tree ถูกโหลดตอนเข้า page แล้ว และแสดงเฉพาะ folder หลักก่อน
+    // ถ้ากด chevron ให้ reveal/collapse folder ย่อย
+    // ถ้ากดแถบ folder ให้ reveal/collapse folder ย่อย และโหลดเอกสารรวมลูกด้วย IN_TREE
     showLoadingSpinner();
     await loadDocuments({ allowList: true });
 });
@@ -342,8 +364,16 @@ button.addEventListener('click', async () => {
 
 - เก็บ path folder ที่เลือกไว้ใน `state.folderPath`
 - เปลี่ยนข้อความ Current Location
-- ถ้าเลือก `หน้าหลัก` จะแสดงข้อความให้เลือก folder ก่อน
-- ถ้าเลือก `คลังเอกสาร` หรือ folder จาก Alfresco จะโหลดเอกสารทันที
+- อัปเดต breadcrumb ตาม path ปัจจุบัน เช่น `หน้าหลัก > คลังเอกสาร > การเงิน > 2567`
+- breadcrumb แต่ละช่วงเป็นปุ่มย้อนกลับไปยังตำแหน่งนั้น
+- ถ้าเลือก `หน้าหลัก` จะปิด folder ย่อยทั้งหมด และแสดงข้อความให้เลือก folder ก่อน
+- ถ้ากด chevron ของ folder ที่มีลูก จะเปิด/ปิด folder ย่อยเท่านั้น
+- ถ้ากดแถบ folder จะเปิด/ปิด folder ย่อยพร้อมกับโหลดเอกสารใน folder นั้นรวม folder ย่อยด้วย
+- เมื่อเลือก folder จะบันทึก path ล่าสุดไว้ใน `sessionStorage`
+- ถ้าไม่พบเอกสาร จะแสดง empty state ที่บอกว่าไม่พบเอกสารใน folder นี้ หรือไม่พบเอกสารที่ตรงกับคำค้น
+- ระหว่างโหลดเอกสารจะแสดงข้อความเฉพาะเจาะจง เช่น `กำลังโหลดเอกสารใน การเงิน...`
+- badge ใต้ชื่อ folder ถูกปิดไว้ก่อนเพื่อลดความซ้ำกับข้อความสถานะและ pagination
+- ปุ่มหลักและปุ่มจัดการมี tooltip/title เพื่อบอกหน้าที่เมื่อเอาเมาส์ชี้
 
 ## 8. ค้นหา/แสดงรายการเอกสาร
 
@@ -470,6 +500,7 @@ renderRows(items)
 ข้อมูลที่แสดงในตาราง:
 
 - ชื่อไฟล์
+- ชนิดไฟล์
 - ขนาดไฟล์
 - ปุ่มรายละเอียดไฟล์
 - ปุ่มเปิดไฟล์
@@ -482,7 +513,6 @@ renderRows(items)
 
 - ชื่อไฟล์
 - ขนาดไฟล์
-- ชนิดไฟล์
 - ผู้สร้าง
 - วันที่สร้าง
 - ผู้แก้ไขล่าสุด

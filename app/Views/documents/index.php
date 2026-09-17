@@ -102,6 +102,10 @@
                         <!-- <p>เลือก folder ที่ต้องการดูเอกสาร</p> -->
                     </div>
                 </div>
+                <button id="collapseFoldersBtn" type="button" class="collapse-folders-btn" title="ปิด folder ย่อยทั้งหมด">
+                    <i class="fa-solid fa-compress" aria-hidden="true"></i>
+                    <span>ปิดทั้งหมด</span>
+                </button>
                 <div id="folderList" class="folder-list"></div>
                 <div class="sidebar-version">
                     <strong>Alfresco ci4</strong>
@@ -113,14 +117,11 @@
         <section class="content">
             <div class="toolbar">
                 <div>
-                    <div class="breadcrumb-line">
-                        <span>หน้าหลัก</span>
-                        <i id="folderCrumbSeparator" class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                        <strong id="folderCrumb">หน้าหลัก</strong>
-                    </div>
+                    <div id="folderCrumb" class="breadcrumb-line">หน้าหลัก</div>
                     <h1 id="selectedFolder">เลือกโฟลเดอร์เอกสาร</h1>
+                    <div id="folderResultBadge" class="folder-result-badge" hidden></div>
                 </div>
-                <button id="reloadFoldersBtn" type="button" class="secondary-btn">
+                <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการ folder ใหม่">
                     <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                     <span>Reload Folder</span>
                 </button>
@@ -138,11 +139,11 @@
                 </label>
 
                 <div class="actions">
-                    <button type="submit">
+                    <button type="submit" title="ค้นหาเอกสาร">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         <span>ค้นหา</span>
                     </button>
-                    <button id="clearBtn" type="button" class="secondary-btn">
+                    <button id="clearBtn" type="button" class="secondary-btn" title="ล้างคำค้น">
                         <i class="fa-solid fa-eraser" aria-hidden="true"></i>
                         <span>ล้าง</span>
                     </button>
@@ -167,6 +168,7 @@
                 <table>
                     <colgroup>
                         <col class="col-file-name">
+                        <col class="col-file-type">
                         <col class="col-file-size">
                         <col class="col-file-meta">
                         <col class="col-file-actions">
@@ -174,11 +176,12 @@
                     <thead>
                         <tr>
                             <th>
-                                <button id="sortNameBtn" type="button" class="sort-header" aria-label="เรียงชื่อไฟล์">
+                                <button id="sortNameBtn" type="button" class="sort-header" aria-label="เรียงชื่อไฟล์" title="เรียงชื่อไฟล์">
                                     <span>ชื่อไฟล์</span>
                                     <i class="fa-solid fa-arrow-down-a-z" aria-hidden="true"></i>
                                 </button>
                             </th>
+                            <th>ชนิดไฟล์</th>
                             <th>ขนาด</th>
                             <th>ข้อมูลไฟล์</th>
                             <th>จัดการ</th>
@@ -186,7 +189,7 @@
                     </thead>
                     <tbody id="documentRows">
                         <tr>
-                            <td colspan="4" class="empty-state-cell">
+                            <td colspan="5" class="empty-state-cell">
                                 <div class="empty-state">
                                     <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                                     <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>
@@ -200,20 +203,20 @@
             <nav class="pagination" aria-label="Document pagination">
                 <div id="pageRangeInfo" class="page-range-info">แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ</div>
                 <div class="page-actions">
-                    <button id="firstBtn" type="button">
+                    <button id="firstBtn" type="button" title="ไปหน้าแรก">
                         <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
                         <span>หน้าแรก</span>
                     </button>
-                    <button id="prevBtn" type="button">
+                    <button id="prevBtn" type="button" title="ไปหน้าก่อนหน้า">
                         <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
                         <span>ก่อนหน้า</span>
                     </button>
                     <strong id="pageInfo">หน้า 1 / 1</strong>
-                    <button id="nextBtn" type="button">
+                    <button id="nextBtn" type="button" title="ไปหน้าถัดไป">
                         <span>ถัดไป</span>
                         <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
                     </button>
-                    <button id="lastBtn" type="button">
+                    <button id="lastBtn" type="button" title="ไปหน้าสุดท้าย">
                         <span>หน้าสุดท้าย</span>
                         <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
                     </button>

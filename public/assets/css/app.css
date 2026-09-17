@@ -855,7 +855,11 @@ table {
 }
 
 .col-file-name {
-    width: 50%;
+    width: 42%;
+}
+
+.col-file-type {
+    width: 16%;
 }
 
 .col-file-size {
@@ -867,7 +871,7 @@ table {
 }
 
 .col-file-actions {
-    width: 22%;
+    width: 14%;
 }
 
 th,
@@ -952,6 +956,19 @@ tbody tr:hover {
     color: #fff;
     background: var(--primary);
     border-color: var(--primary);
+}
+
+.file-badge {
+    min-height: 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 0 10px;
+    color: #315b8d;
+    background: #edf1f6;
+    font-size: 12px;
+    font-weight: 400;
 }
 
 .rename-file-btn {
@@ -1118,7 +1135,7 @@ body {
 }
 
 .app-layout {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     min-height: calc(100vh - 76px);
 }
 
@@ -1126,8 +1143,8 @@ body {
     position: sticky;
     top: 76px;
     align-self: start;
-    width: 200px;
-    min-width: 200px;
+    width: 260px;
+    min-width: 260px;
     height: calc(100vh - 76px);
     padding: 24px 12px 24px 24px;
     overflow-y: auto;
@@ -1144,12 +1161,35 @@ body {
     margin-top: 0;
 }
 
+.collapse-folders-btn {
+    width: 100%;
+    min-height: 36px;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    border-color: #d4deec;
+    border-radius: 8px;
+    color: #314363;
+    background: #f8fafc;
+    font-size: 12px;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+.collapse-folders-btn:hover,
+.collapse-folders-btn:focus-visible {
+    color: #2f6f92;
+    background: #edf6fa;
+    border-color: #c8e0ec;
+    box-shadow: none;
+}
+
 .folder-item {
     width: 100%;
     flex: 0 0 48px;
     height: 48px;
     min-height: 48px;
-    padding: 0 10px;
+    padding: 0 10px 0 calc(10px + (var(--folder-level, 0) * 12px));
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -1193,6 +1233,13 @@ body {
 
 .folder-name {
     gap: 8px;
+    min-width: 0;
+}
+
+.folder-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .folder-name i {
@@ -1204,6 +1251,44 @@ body {
 .folder-item.active .folder-name i,
 .folder-item:hover .folder-name i {
     color: inherit;
+}
+
+.folder-item.loading .folder-name i {
+    animation: fa-spin 1s linear infinite;
+}
+
+.folder-toggle {
+    width: 14px;
+    flex: 0 0 14px;
+    margin-left: auto;
+    color: #6d7d97;
+    font-size: 11px;
+}
+
+.folder-toggle[hidden] {
+    display: none;
+}
+
+.folder-item.active .folder-toggle,
+.folder-item:hover .folder-toggle {
+    color: inherit;
+}
+
+.folder-loading-state {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border-radius: 8px;
+    color: #60718f;
+    background: #f3f7fb;
+    font-size: 12px;
+}
+
+.folder-loading-state i {
+    color: #2f6f92;
+    font-size: 13px;
 }
 
 .folder-path,
@@ -1227,17 +1312,67 @@ body {
     font-weight: 600;
 }
 
-.breadcrumb-line {
+.folder-result-badge {
+    min-height: 24px;
     display: inline-flex;
-    gap: 12px;
     align-items: center;
+    gap: 7px;
+    margin-top: 4px;
+    border-radius: 999px;
+    padding: 0 10px;
+    color: #315b8d;
+    background: #edf6fa;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.folder-result-badge[hidden] {
+    display: none;
+}
+
+.folder-result-badge.loading {
+    color: #60718f;
+    background: #f3f7fb;
+}
+
+.folder-result-badge i {
+    color: #2f6f92;
+    font-size: 12px;
+}
+
+.breadcrumb-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+    max-width: 100%;
     color: #7a89a2;
     font-size: 12px;
+    line-height: 1.5;
 }
 
 .breadcrumb-line strong {
     color: #2f6f92;
     font-weight: 500;
+}
+
+.breadcrumb-action {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.breadcrumb-action:hover,
+.breadcrumb-action:focus-visible {
+    color: #2f6f92;
+    background: transparent;
+    box-shadow: none;
 }
 
 .breadcrumb-line i {
