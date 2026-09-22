@@ -102,7 +102,7 @@
                         <!-- <p>เลือก folder ที่ต้องการดูเอกสาร</p> -->
                     </div>
                 </div>
-                <button id="collapseFoldersBtn" type="button" class="collapse-folders-btn" title="ปิด folder ย่อยทั้งหมด">
+                <button id="collapseFoldersBtn" type="button" class="collapse-folders-btn" title="ปิด folder ย่อยทั้งหมด" hidden>
                     <i class="fa-solid fa-compress" aria-hidden="true"></i>
                     <span>ปิดทั้งหมด</span>
                 </button>
@@ -233,6 +233,7 @@
             idleTimeoutSeconds: <?= json_encode($idleTimeoutSeconds) ?>
         };
     </script>
-    <script src="<?= base_url('assets/js/direct-documents.js') ?>"></script>
+    <script src="<?= base_url('assets/js/direct-documents.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-documents.js') ?>"></script>
 </body>
 </html>
+

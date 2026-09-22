@@ -22,9 +22,31 @@
         sessionStorage.setItem(storage.sessionMessage, 'Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่');
     }
 
-    if (localStorage.getItem(storage.accessToken)) {
-        window.location.href = config.documentsUrl;
-        return;
+    const existingToken = localStorage.getItem(storage.accessToken);
+    if (existingToken) {
+        verifyExistingToken(existingToken);
+    }
+
+    async function verifyExistingToken(existingToken) {
+        try {
+            const response = await fetch(`${config.apiBaseUrl}/auth/me`, {
+                headers: {
+                    Authorization: `Bearer ${existingToken}`,
+                    Accept: 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                localStorage.setItem(storage.lastActivity, String(Date.now()));
+                window.location.href = config.documentsUrl;
+                return;
+            }
+        } catch (error) {
+            // ถ้าเช็ค token ไม่ได้ ให้ถือว่า token เก่าใช้ไม่ได้ แล้วให้ user login ใหม่
+        }
+
+        clearStoredSession();
+        sessionStorage.removeItem(storage.sessionMessage);
     }
 
     function hasIdleExpired() {
@@ -38,15 +60,29 @@
         localStorage.removeItem(storage.lastActivity);
     }
 
+    async function ensureTokenUsable(accessToken) {
+        const response = await fetch(`${config.apiBaseUrl}/auth/me`, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: 'application/json',
+            },
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || 'Token ใช้งานไม่ได้ กรุณา login ใหม่');
+        }
+    }
+
     function configureToastr() {
         if (!window.toastr) {
             return;
         }
 
         window.toastr.options = {
-            closeButton: true,
-            progressBar: true,
-            positionClass: 'toast-center-center',
+             closeButton: true,
+             progressBar: true,
+            //  positionClass: 'toast-center-center',
             timeOut: '3500',
         };
     }
@@ -108,6 +144,9 @@
                 passwordInput.focus();
                 return;
             }
+        clearStoredSession();
+        sessionStorage.removeItem(storage.sessionMessage);
+
         loginBtn.disabled = true;
         loginBtn.textContent = 'กำลังเข้าสู่ระบบ...';
 
@@ -127,6 +166,7 @@
                 localStorage.setItem(storage.accessToken, data.accessToken);
                 localStorage.setItem(storage.username, username);
                 localStorage.setItem(storage.lastActivity, String(Date.now()));
+                await ensureTokenUsable(data.accessToken);
                 setTimeout(() => window.location.href = config.documentsUrl, 1000);
             } else {
                 showToast("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", true);

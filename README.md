@@ -36,7 +36,12 @@ http://localhost:8086/login
 ```http
 POST http://localhost:3001/auth/login
 Content-Type: application/json
+
+GET http://localhost:3001/auth/me
+Authorization: Bearer <accessToken>
 ```
+
+`/auth/me` ใช้ตรวจ token เก่าที่ค้างใน browser และตรวจ token ใหม่หลัง login ก่อน redirect ไปหน้า documents
 
 หน้า documents:
 
@@ -46,10 +51,12 @@ GET http://localhost:3001/user-api/alfresco/documents
 GET http://localhost:3001/user-api/alfresco/documents/search
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 PATCH http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
+POST http://localhost:3001/auth/logout
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
+GET http://localhost:3001/user-api/alfresco/documents/:id/content?name=file.pdf&action=download
 ```
 
-ทุกเส้นแนบ:
+ทุกเส้นยกเว้น `/auth/login` ต้องแนบ:
 
 ```http
 Authorization: Bearer <accessToken>
@@ -113,7 +120,7 @@ creationDate
 lastModifiedBy
 lastModificationDate
 allowRename สำหรับควบคุมการแสดงไอคอนแก้ไขชื่อไฟล์
-parentPath จาก endpoint /documents/location
+parentPath จาก endpoint /documents/location ซึ่ง backend จะบันทึก audit action `VIEW_FILE_DETAIL`
 ```
 
 ส่วน `mimeType` เช่น `application/pdf` แสดงเป็นคอลัมน์ `ชนิดไฟล์` ในตารางรายการเอกสารโดยตรง
@@ -137,7 +144,7 @@ API จะลองค้นชื่อแบบตรงตัวตามล�
 GET /user-api/alfresco/documents/search?folderPath=/Sites/tg-saving/documentLibrary&q=23017_116969
 ```
 
-ตำแหน่งไฟล์แยกเป็น endpoint เฉพาะไฟล์:
+ตำแหน่งไฟล์แยกเป็น endpoint เฉพาะไฟล์ และ backend จะบันทึก audit action `VIEW_FILE_DETAIL`:
 
 ```http
 GET /user-api/alfresco/documents/location?id=DOCUMENT_ID
@@ -164,6 +171,26 @@ Content-Type: application/json
 
 หน้าเว็บส่ง id ผ่าน query string เพื่อเก็บ id เต็มของ Alfresco เช่น `uuid;1.0` และเลี่ยงปัญหา `Route not found` จากอักขระพิเศษใน URL path
 
+
+## Logout และ Audit Log
+
+เมื่อ user กด logout หน้าเว็บจะเรียก backend ก่อนล้าง token:
+
+```http
+POST http://localhost:3001/auth/logout
+Authorization: Bearer <accessToken>
+```
+
+จากนั้นจึงลบข้อมูลใน browser:
+
+```text
+localStorage key: alfresco_direct_access_token
+localStorage key: alfresco_direct_username
+localStorage key: alfresco_direct_last_activity
+```
+
+เหตุผลที่ต้องเรียก `/auth/logout` ก่อนล้าง token คือให้ `UserAlfresco-api` บันทึก audit log action `LOGOUT` ลง `backend/logs/audit.log` ได้ ถ้าลบ token ฝั่ง browser อย่างเดียว backend จะไม่รู้ว่า user logout
 ## Security Note
 
 โปรเจคนี้เก็บ access token ใน browser `localStorage` เพื่อให้เห็น flow เรียก API ตรง ๆ ชัดเจน 
+

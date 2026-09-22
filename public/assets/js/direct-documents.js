@@ -421,7 +421,6 @@
 
     async function loadFolders() {
         const runId = ++folderLoadRunId;
-        setMessage('กำลังโหลด folder ตามสิทธิ์...');
         folderList.innerHTML = '';
         folderTreeButtons = new Map();
         folderTreeChildren = new Map();
@@ -520,14 +519,10 @@
         }
 
         if (button.dataset.treeLoading === 'true') {
-            setMessage('กำลังโหลด folder หลักและ folder ย่อยทั้งหมดตามสิทธิ์...');
-            setFolderLoading(true, 'กำลังโหลด folder ตามสิทธิ์...');
             return false;
         }
 
         const runId = folderLoadRunId;
-        setMessage('กำลังโหลด folder หลักและ folder ย่อยทั้งหมดตามสิทธิ์...');
-        setFolderLoading(true, 'กำลังโหลด folder ตามสิทธิ์...');
         button.dataset.treeLoading = 'true';
         button.classList.add('loading');
 
@@ -547,12 +542,11 @@
             button.dataset.treeLoaded = 'true';
             button.dataset.childrenLoaded = 'true';
             setSelectedFolder(state.folderPath, state.folderLabel, state.isHomeSelected);
-            setMessage(folders.length ? `โหลด folder ตามสิทธิ์แล้ว ${folders.length} รายการ เลือก folder หลักเพื่อดู folder ย่อย` : 'ไม่พบ folder ย่อยตามสิทธิ์');
+            setMessage(folders.length ? 'เลือก folder หลักเพื่อดู folder ย่อย หรือเลือก folder ปลายทางเพื่อแสดงเอกสาร' : 'ไม่พบ folder ย่อย');
             return true;
         } finally {
             button.dataset.treeLoading = 'false';
             button.classList.remove('loading');
-            setFolderLoading(false);
         }
     }
 
@@ -1005,7 +999,7 @@
         const exactPayload = await requestJson(`${exactUrl.pathname}${exactUrl.search}`);
 
         if (pickItems(exactPayload).length) {
-            exactPayload.message = 'พบจากการค้นชื่อไฟล์เต็ม';
+            exactPayload.message = 'พบเอกสารที่ตรงกับชื่อไฟล์';
             return exactPayload;
         }
 
@@ -1132,13 +1126,14 @@ ${renameAction}
         }
     }
 
-    async function fetchFileBlob(id, name, errorPrefix = 'เปิดไฟล์ไม่สำเร็จ') {
+    async function fetchFileBlob(id, name, errorPrefix = 'เปิดไฟล์ไม่สำเร็จ', options = {}) {
         if (hasIdleExpired()) {
             expireSession();
             throw new Error('Session หมดอายุ กรุณา login ใหม่');
         }
 
-        const url = apiUrl(`/user-api/alfresco/documents/${encodeURIComponent(id)}/content?name=${encodeURIComponent(name || 'file.pdf')}`);
+        const actionQuery = options.action ? `&action=${encodeURIComponent(options.action)}` : '';
+        const url = apiUrl(`/user-api/alfresco/documents/${encodeURIComponent(id)}/content?name=${encodeURIComponent(name || 'file.pdf')}${actionQuery}`);
         const response = await fetch(url, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -1173,7 +1168,7 @@ ${renameAction}
     }
 
     async function downloadFile(id, name) {
-        const blob = await fetchFileBlob(id, name, 'ดาวน์โหลดไฟล์ไม่สำเร็จ');
+        const blob = await fetchFileBlob(id, name, 'ดาวน์โหลดไฟล์ไม่สำเร็จ', { action: 'download' });
         const objectUrl = URL.createObjectURL(blob);
         const downloadLink = document.createElement('a');
 
@@ -1376,7 +1371,23 @@ ${renameAction}
         lastBtn.disabled = isLoading || !state.hasKnownTotal || isLastPage;
     }
 
-    function logout(sessionMessage, showPopup = false) {
+    async function notifyBackendLogout() {
+        if (!token) {
+            return;
+        }
+
+        try {
+            await fetch(apiUrl('/auth/logout'), {
+                method: 'POST',
+                headers: authHeaders(),
+                keepalive: true,
+            });
+        } catch (error) {
+            // ถ้า logout log ไม่สำเร็จ ยังต้องล้าง token ฝั่ง browser เพื่อออกจากระบบให้ผู้ใช้
+        }
+    }
+
+    async function logout(sessionMessage, showPopup = false) {
         if (showPopup && sessionMessage) {
             showSessionExpiredPopup(sessionMessage);
             return;
@@ -1386,6 +1397,7 @@ ${renameAction}
             sessionStorage.setItem(storage.sessionMessage, sessionMessage);
         }
 
+        await notifyBackendLogout();
         clearStoredSession();
         window.location.href = config.loginUrl;
     }
@@ -1485,7 +1497,9 @@ ${renameAction}
     });
 
     clearBtn.addEventListener('click', () => {
+        const hadKeyword = Boolean(keywordInput.value.trim());
         keywordInput.value = '';
+        keywordInput.focus();
         state.page = 1;
         state.currentItemCount = 0;
         state.totalItems = 0;
@@ -1495,12 +1509,12 @@ ${renameAction}
         if (state.isHomeSelected || !state.folderPath) {
             setSelectedFolder('', 'หน้าหลัก', true);
             showSelectFolderPrompt();
-            setMessage('ล้างคำค้นแล้ว เลือก folder เพื่อโหลดเอกสาร');
+            setMessage(hadKeyword ? 'ล้างคำค้นแล้ว กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร' : 'กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร');
             updatePager(false);
             return;
         }
 
-        setMessage('ล้างคำค้นแล้ว กำลังโหลดรายการเอกสารใน folder เดิม...');
+        setMessage(hadKeyword ? 'ล้างคำค้นแล้ว กำลังโหลดรายการเอกสารใน folder เดิม...' : 'กำลังโหลดรายการเอกสารใน folder เดิม...');
         showLoadingSpinner();
         updatePager(true);
 
@@ -1692,3 +1706,4 @@ ${renameAction}
     updatePager(false);
     loadFolders().catch((error) => setMessage(error.message, true));
 })();
+

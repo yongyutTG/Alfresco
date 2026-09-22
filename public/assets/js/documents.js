@@ -92,7 +92,7 @@
     }
 
     async function loadFolders() {
-        setMessage('กำลังโหลด folder ตามสิทธิ์...');
+        // setMessage('กำลังโหลด folder ตามสิทธิ์...');
         folderList.innerHTML = '';
 
         const url = new URL(config.endpoints.folders, window.location.origin);

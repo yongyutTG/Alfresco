@@ -150,9 +150,18 @@ Body:
 
 ```json
 {
+  "tokenType": "Bearer",
   "accessToken": "TOKEN",
-  "expiresAt": "..."
+  "expiresInMs": 28800000,
+  "username": "alfresco_user"
 }
+```
+
+หน้า login มี 2 จุดที่เรียก `/auth/me`:
+
+```text
+1. ตอนเปิดหน้า login ถ้ามี token เก่าค้างใน localStorage จะเช็ค /auth/me ก่อน ถ้ายังใช้ได้ค่อย redirect ไป /documents
+2. หลัง POST /auth/login สำเร็จ จะเช็ค /auth/me ด้วย token ใหม่ก่อน redirect ไป /documents
 ```
 
 จากนั้น frontend จะเก็บข้อมูลไว้ใน browser:
@@ -160,6 +169,7 @@ Body:
 ```js
 localStorage.setItem('alfresco_direct_access_token', data.accessToken);
 localStorage.setItem('alfresco_direct_username', username);
+localStorage.setItem('alfresco_direct_last_activity', String(Date.now()));
 ```
 
 แล้ว redirect ไปหน้า documents:
@@ -173,8 +183,10 @@ window.location.href = config.documentsUrl;
 ```text
 login.php
  -> direct-auth.js
+ -> ถ้ามี token เก่า: GET /auth/me
  -> POST /auth/login
  -> ได้ accessToken
+ -> GET /auth/me เพื่อตรวจ token ใหม่
  -> เก็บ accessToken ใน localStorage
  -> redirect ไป /documents
 ```
@@ -533,6 +545,8 @@ data-name="FILE_NAME"
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 ```
 
+เมื่อกดปุ่มรายละเอียด backend จะบันทึก audit log action `VIEW_FILE_DETAIL`
+
 หน้าเว็บใช้ query string แทนการใส่ `id` ไว้ใน path เพื่อเลี่ยงปัญหา `Route not found` เมื่อ `id` ของ Alfresco มีอักขระพิเศษ ส่วน route เดิม `/user-api/alfresco/documents/:id/location` ยังมีไว้รองรับโค้ดเก่า
 
 ตัวอย่าง response:
@@ -665,6 +679,28 @@ blob:http://localhost:8086/xxxx
 
 อันนี้เป็นพฤติกรรมปกติของ frontend ที่เรียก API ตรงพร้อม Bearer token
 
+## 11.1 ดาวน์โหลดไฟล์
+
+ไฟล์:
+
+```text
+public/assets/js/direct-documents.js
+```
+
+Function:
+
+```js
+downloadFile(id, name)
+```
+
+API ที่เรียก:
+
+```text
+GET http://localhost:3001/user-api/alfresco/documents/:id/content?name=file.pdf&action=download
+```
+
+ต่างจากปุ่มเปิดไฟล์ตรงที่เพิ่ม `action=download` เพื่อให้ backend บันทึก audit log เป็น `DOWNLOAD_FILE` ส่วนปุ่มเปิดไฟล์จะไม่ส่ง `action=download` และถูกบันทึกเป็น `OPEN_FILE`
+
 ## 12. Logout
 
 ไฟล์:
@@ -682,19 +718,31 @@ logout()
 การทำงาน:
 
 ```js
-localStorage.removeItem(storage.accessToken);
-localStorage.removeItem(storage.username);
+await notifyBackendLogout();
+clearStoredSession();
 window.location.href = config.loginUrl;
+```
+
+`notifyBackendLogout()` จะเรียก:
+
+```http
+POST /auth/logout
+Authorization: Bearer <accessToken>
 ```
 
 สรุป:
 
 ```text
 กด Logout
+ -> POST /auth/logout ไป UserAlfresco-api พร้อม Bearer token
+ -> backend บันทึก audit log action LOGOUT
  -> ลบ accessToken จาก localStorage
  -> ลบ username จาก localStorage
+ -> ลบ lastActivity จาก localStorage
  -> redirect ไป /login
 ```
+
+หมายเหตุ: ถ้าปิด browser/tab เฉย ๆ หรือ frontend ลบ token เองโดยไม่เรียก `/auth/logout` backend จะไม่สามารถบันทึก `LOGOUT` ได้
 
 ## 13. API ที่ frontend เรียก
 
@@ -703,6 +751,8 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Flow | Method | Endpoint | Token |
 |---|---|---|---|
 | Login | `POST` | `/auth/login` | ไม่ต้องแนบ |
+| Check token | `GET` | `/auth/me` | Bearer token |
+| Logout | `POST` | `/auth/logout` | Bearer token |
 | Load folders | `GET` | `/user-api/alfresco/folders?path=...` | Bearer token |
 | Load documents | `GET` | `/user-api/alfresco/documents?folderPath=...` | Bearer token |
 | Search exact name | `GET` | `/user-api/alfresco/documents/search?folderPath=...&exactName=...` | Bearer token |
@@ -710,6 +760,7 @@ Frontend เรียก `UserAlfresco-api` โดยตรงทั้งหม
 | Get file location | `GET` | `/user-api/alfresco/documents/location?id=...` | Bearer token |
 | Rename file | `PATCH` | `/user-api/alfresco/documents?id=...` | Bearer token |
 | Open content | `GET` | `/user-api/alfresco/documents/:id/content?name=...` | Bearer token |
+| Download content | `GET` | `/user-api/alfresco/documents/:id/content?name=...&action=download` | Bearer token |
 
 ## 14. Token อยู่ที่ไหน
 
@@ -785,3 +836,5 @@ public/assets/js/direct-documents.js
  -> เปิดไฟล์ด้วย fetch + blob
  -> logout
 ```
+
+

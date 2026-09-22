@@ -92,7 +92,7 @@ class ContentSecurityPolicy extends BaseConfig
      *
      * @var string|string[]
      */
-    public $connectSrc = ['self'];
+    public $connectSrc = ['self', 'https://cdnjs.cloudflare.com'];
 
     /**
      * Specifies the origins that can serve web fonts.
@@ -183,3 +183,4 @@ class ContentSecurityPolicy extends BaseConfig
         }
     }
 }
+
