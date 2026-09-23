@@ -17,14 +17,18 @@
 
     configureToastr();
 
-    if (hasIdleExpired()) {
+    let existingToken = localStorage.getItem(storage.accessToken);
+
+    if (existingToken && hasIdleExpired()) {
         clearStoredSession();
         sessionStorage.setItem(storage.sessionMessage, 'Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่');
+        existingToken = null;
     }
 
-    const existingToken = localStorage.getItem(storage.accessToken);
     if (existingToken) {
         verifyExistingToken(existingToken);
+    } else {
+        localStorage.removeItem(storage.lastActivity);
     }
 
     async function verifyExistingToken(existingToken) {

@@ -7,6 +7,7 @@
         sessionMessage: 'alfresco_direct_session_message',
         lastFolderPath: 'alfresco_direct_last_folder_path',
         lastFolderLabel: 'alfresco_direct_last_folder_label',
+        sidebarWidth: 'alfresco_direct_sidebar_width',
     };
     const idleTimeoutMs = Number(config.idleTimeoutSeconds || 0) * 1000;
     let lastActivityWrite = 0;
@@ -32,6 +33,9 @@
         nameSortDirection: 'asc',
     };
 
+    const appLayout = document.querySelector('.app-layout');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarResizeHandle = document.getElementById('sidebarResizeHandle');
     const folderList = document.getElementById('folderList');
     const selectedFolder = document.getElementById('selectedFolder');
     const folderResultBadge = document.getElementById('folderResultBadge');
@@ -77,6 +81,8 @@
     let folderTreeButtons = new Map();
     let folderTreeChildren = new Map();
 
+    initResizableSidebar();
+
     const savedUsername = localStorage.getItem(storage.username) || '-';
     if (userName) {
         userName.textContent = savedUsername;
@@ -96,6 +102,82 @@
 
     function apiUrl(path) {
         return `${config.apiBaseUrl}${path}`;
+    }
+
+    function initResizableSidebar() {
+        if (!appLayout || !sidebar || !sidebarResizeHandle) {
+            return;
+        }
+
+        const minWidth = 220;
+        const maxWidth = 460;
+        const savedWidth = Number(localStorage.getItem(storage.sidebarWidth));
+
+        if (Number.isFinite(savedWidth) && savedWidth >= minWidth && savedWidth <= maxWidth) {
+            setSidebarWidth(savedWidth);
+        }
+
+        function getPointerWidth(event) {
+            const layoutLeft = appLayout.getBoundingClientRect().left;
+            return Math.round(event.clientX - layoutLeft);
+        }
+
+        function clampWidth(width) {
+            const maxByViewport = Math.max(minWidth, Math.min(maxWidth, window.innerWidth - 520));
+            return Math.min(Math.max(width, minWidth), maxByViewport);
+        }
+
+        function setSidebarWidth(width) {
+            const nextWidth = clampWidth(width);
+            appLayout.style.setProperty('--sidebar-width', `${nextWidth}px`);
+            localStorage.setItem(storage.sidebarWidth, String(nextWidth));
+        }
+
+        sidebarResizeHandle.addEventListener('pointerdown', (event) => {
+            if (window.matchMedia('(max-width: 980px)').matches) {
+                return;
+            }
+
+            event.preventDefault();
+            sidebar.classList.add('is-resizing');
+            sidebarResizeHandle.setPointerCapture(event.pointerId);
+
+            const onPointerMove = (moveEvent) => {
+                setSidebarWidth(getPointerWidth(moveEvent));
+            };
+
+            const stopResize = () => {
+                sidebar.classList.remove('is-resizing');
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', stopResize);
+                window.removeEventListener('pointercancel', stopResize);
+            };
+
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', stopResize);
+            window.addEventListener('pointercancel', stopResize);
+        });
+
+        sidebarResizeHandle.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+                return;
+            }
+
+            event.preventDefault();
+            const currentWidth = sidebar.getBoundingClientRect().width;
+
+            if (event.key === 'Home') {
+                setSidebarWidth(260);
+                return;
+            }
+
+            if (event.key === 'End') {
+                setSidebarWidth(maxWidth);
+                return;
+            }
+
+            setSidebarWidth(currentWidth + (event.key === 'ArrowRight' ? 20 : -20));
+        });
     }
 
     function authHeaders(extraHeaders = {}) {
@@ -1155,7 +1237,53 @@ ${renameAction}
 
         viewerWindow.opener = null;
         viewerWindow.document.title = name || 'file.pdf';
-        viewerWindow.document.body.textContent = 'กำลังโหลดไฟล์...';
+        viewerWindow.document.open();
+        viewerWindow.document.write(`
+            <!doctype html>
+            <html lang="th">
+            <head>
+                <meta charset="utf-8">
+                <title>${escapeHtml(name || 'file.pdf')}</title>
+                <style>
+                    body {
+                        min-height: 100vh;
+                        display: grid;
+                        place-items: center;
+                        margin: 0;
+                        color: #17315c;
+                        background: #f8fbff;
+                        font-family: Arial, sans-serif;
+                    }
+                    .loading-spinner {
+                        text-align: center;
+                    }
+                    .loading-spinner-icon {
+                        width: 58px;
+                        height: 58px;
+                        border: 6px solid #d7e5ee;
+                        border-top-color: #2f6f92;
+                        border-radius: 50%;
+                        margin: 0 auto;
+                        animation: spin 0.8s linear infinite;
+                    }
+                    .loading-spinner-text {
+                        margin-top: 15px;
+                        font-size: 16px;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            </head>
+            <body>
+                <div id="loading-spinner" class="loading-spinner">
+                    <div class="loading-spinner-icon" aria-hidden="true"></div>
+                    <p class="loading-spinner-text">กำลังโหลดไฟล์...</p>
+                </div>
+            </body>
+            </html>
+        `);
+        viewerWindow.document.close();
 
         try {
             const blob = await fetchFileBlob(id, name, 'เปิดไฟล์ไม่สำเร็จ');

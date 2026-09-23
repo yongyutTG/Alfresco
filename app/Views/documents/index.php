@@ -102,16 +102,13 @@
                         <!-- <p>เลือก folder ที่ต้องการดูเอกสาร</p> -->
                     </div>
                 </div>
-                <button id="collapseFoldersBtn" type="button" class="collapse-folders-btn" title="ปิด folder ย่อยทั้งหมด" hidden>
-                    <i class="fa-solid fa-compress" aria-hidden="true"></i>
-                    <span>ปิดทั้งหมด</span>
-                </button>
                 <div id="folderList" class="folder-list"></div>
                 <div class="sidebar-version">
                     <strong>Alfresco ci4</strong>
                     <span>v<?= esc($appVersion) ?></span>
                 </div>
             </div>
+            <div id="sidebarResizeHandle" class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="ปรับความกว้างแถบ folder" title="ลากเพื่อปรับความกว้าง" tabindex="0"></div>
         </aside>
 
         <section class="content">
@@ -123,7 +120,7 @@
                 </div>
                 <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการ folder ใหม่">
                     <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                    <span>Reload Folder</span>
+                    <span class="sr-only">โหลดรายการ folder ใหม่</span>
                 </button>
             </div>
 
@@ -131,10 +128,9 @@
                 <input type="hidden" id="folderPath" value="<?= esc($rootPath) ?>">
 
                 <label>
-                    <span>ค้นหาชื่อไฟล์</span>
                     <span class="search-input-wrap">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                        <input id="keyword" type="search" placeholder="เช่น EVLPS701-0001">
+                        <input id="keyword" type="search" placeholder="ค้นหาชื่อไฟล์ เช่น EVLPS701-0001">
                     </span>
                 </label>
 
@@ -150,7 +146,7 @@
                 </div>
 
                 <label class="page-size-field">
-                    <span>จำนวนต่อหน้า</span>
+                    <!-- <span>จำนวนต่อหน้า</span> -->
                     <select id="pageSize">
                         <option value="25" selected>25</option>
                         <option value="50">50</option>
@@ -236,4 +232,3 @@
     <script src="<?= base_url('assets/js/direct-documents.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-documents.js') ?>"></script>
 </body>
 </html>
-
