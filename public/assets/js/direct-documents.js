@@ -133,6 +133,10 @@
             localStorage.setItem(storage.sidebarWidth, String(nextWidth));
         }
 
+        function resetSidebarWidth() {
+            setSidebarWidth(300);
+        }
+
         sidebarResizeHandle.addEventListener('pointerdown', (event) => {
             if (window.matchMedia('(max-width: 980px)').matches) {
                 return;
@@ -167,7 +171,7 @@
             const currentWidth = sidebar.getBoundingClientRect().width;
 
             if (event.key === 'Home') {
-                setSidebarWidth(260);
+                resetSidebarWidth();
                 return;
             }
 
@@ -177,6 +181,11 @@
             }
 
             setSidebarWidth(currentWidth + (event.key === 'ArrowRight' ? 20 : -20));
+        });
+
+        sidebarResizeHandle.addEventListener('dblclick', (event) => {
+            event.preventDefault();
+            resetSidebarWidth();
         });
     }
 
@@ -653,11 +662,25 @@
 
         const children = folderTreeChildren.get(parentPath) || [];
         children.forEach((folder) => addFolderButtonToTree(folder, folderTreeButtons));
+        markFolderGuide(parentPath);
         markFolderChildrenState(parentPath, children);
         parentButton.dataset.childrenRendered = 'true';
         updateFolderToggle(parentButton);
 
         return children;
+    }
+
+    function markFolderGuide(parentPath) {
+        const children = folderTreeChildren.get(parentPath) || [];
+        const childButtons = children
+            .map((child) => folderTreeButtons.get(child.path))
+            .filter(Boolean);
+
+        childButtons.forEach((button, index) => {
+            button.dataset.treeGuide = 'true';
+            button.dataset.treeGuideFirst = index === 0 ? 'true' : 'false';
+            button.dataset.treeGuideLast = index === childButtons.length - 1 ? 'true' : 'false';
+        });
     }
 
     function collapseFolderChildren(parentPath) {
@@ -1067,9 +1090,12 @@
         const badgeText = keyword
             ? `${folderLabel} · พบผลการค้นหา ${totalText} รายการ`
             : `${folderLabel} · พบเอกสาร ${totalText} รายการ`;
+        const messageText = keyword
+            ? `${payload.message || 'พบผลการค้นหา'} · ${totalText} รายการ`
+            : badgeText;
         setFolderResultBadge(badgeText);
         updatePager(false);
-        setMessage(items.length ? `${payload.message ? `${payload.message} ` : ''}${badgeText}` : 'ไม่พบเอกสาร');
+        setMessage(items.length ? messageText : 'ไม่พบเอกสาร');
     }
 
     async function findExactThenPartial(keyword, maxItems, skipCount) {
@@ -1091,7 +1117,7 @@
         partialUrl.searchParams.set('maxItems', String(maxItems));
         partialUrl.searchParams.set('skipCount', String(skipCount));
         const partialPayload = await requestJson(`${partialUrl.pathname}${partialUrl.search}`);
-        partialPayload.message = 'ไม่พบชื่อไฟล์เต็ม จึงค้นแบบบางส่วนแทน';
+        partialPayload.message = 'พบเอกสารที่ใกล้เคียงกับคำค้น';
         return partialPayload;
     }
 
@@ -1642,7 +1668,7 @@ ${renameAction}
             return;
         }
 
-        setMessage(hadKeyword ? 'ล้างคำค้นแล้ว กำลังโหลดรายการเอกสารใน folder เดิม...' : 'กำลังโหลดรายการเอกสารใน folder เดิม...');
+        setMessage(hadKeyword ? 'ล้างคำค้นแล้ว แสดงเอกสารทั้งหมดใน folder นี้' : 'กำลังโหลดรายการเอกสารใน folder นี้...');
         showLoadingSpinner();
         updatePager(true);
 

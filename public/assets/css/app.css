@@ -936,7 +936,7 @@ tbody tr:hover {
 
 .file-name i {
     margin-top: 3px;
-    color: #b42318;
+    color: #9f2f2f;
 }
 
 .file-info-btn {
@@ -1151,7 +1151,7 @@ body {
 }
 
 .app-layout {
-    grid-template-columns: var(--sidebar-width, 260px) minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-width, 300px) minmax(0, 1fr);
     min-height: calc(100vh - 76px);
 }
 
@@ -1159,8 +1159,8 @@ body {
     position: sticky;
     top: 76px;
     align-self: start;
-    width: var(--sidebar-width, 260px);
-    min-width: var(--sidebar-width, 260px);
+    width: var(--sidebar-width, 300px);
+    min-width: var(--sidebar-width, 300px);
     height: calc(100vh - 76px);
     padding: 24px 12px 24px 24px;
     overflow-y: auto;
@@ -1239,6 +1239,7 @@ body {
 }
 
 .folder-item {
+    position: relative;
     width: 100%;
     flex: 0 0 48px;
     height: 48px;
@@ -1258,6 +1259,39 @@ body {
     transform: none;
     transition: none;
     will-change: auto;
+}
+
+.folder-item[data-tree-guide="true"]::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    bottom: -8px;
+    left: calc(4px + (var(--folder-level, 0) * 12px));
+    width: 1px;
+    background: #d6e2ec;
+}
+
+.folder-item[data-tree-guide-first="true"]::before {
+    top: 50%;
+}
+
+.folder-item[data-tree-guide-last="true"]::before {
+    bottom: 50%;
+}
+
+.folder-item[data-tree-guide="true"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: calc(4px + (var(--folder-level, 0) * 12px));
+    width: 10px;
+    height: 1px;
+    background: #d6e2ec;
+}
+
+.folder-item.active::before,
+.folder-item.active::after {
+    background: rgba(255, 255, 255, 0.65);
 }
 
 .folder-item:hover {
@@ -1286,6 +1320,8 @@ body {
 }
 
 .folder-name {
+    position: relative;
+    z-index: 1;
     gap: 8px;
     min-width: 0;
 }
@@ -1600,7 +1636,7 @@ td {
     width: auto;
     flex-basis: auto;
     margin-top: 0;
-    color: #ef232c;
+    color: #9f2f2f;
 }
 
 .rename-file-btn i {

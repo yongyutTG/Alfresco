@@ -19,7 +19,7 @@
     <section class="login-box">
       <div class="login-head">Alfresco Login</div>
       <form id="loginForm">
-        <label for="username">ชื่อผู้ใช้</label>
+        <label for="username">ชื่อผู้ใช้งาน</label>
         <input id="username" name="username" type="text" autocomplete="username" required autofocus>
 
         <label for="password">รหัสผ่าน</label>

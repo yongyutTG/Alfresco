@@ -147,7 +147,7 @@
 
                 <label class="page-size-field">
                     <!-- <span>จำนวนต่อหน้า</span> -->
-                    <select id="pageSize">
+                    <select id="pageSize" title="จำนวนรายการต่อหน้า" aria-label="จำนวนรายการต่อหน้า">
                         <option value="25" selected>25</option>
                         <option value="50">50</option>
                         <option value="100">100</option>
