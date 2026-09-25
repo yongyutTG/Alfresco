@@ -123,7 +123,7 @@ allowRename สำหรับควบคุมการแสดงไอค�
 parentPath จาก endpoint /documents/location ซึ่ง backend จะบันทึก audit action `VIEW_FILE_DETAIL`
 ```
 
-ส่วน `mimeType` เช่น `application/pdf` แสดงเป็นคอลัมน์ `ชนิดไฟล์` ในตารางรายการเอกสารโดยตรง
+สิทธิ์แก้ไขแสดงทางคอลัมน์ `จัดการ` เท่านั้น ถ้า API ส่ง `allowRename: true` จะแสดงไอคอนดินสอ ถ้าไม่มีสิทธิ์จะไม่แสดงไอคอนนี้
 
 การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
 

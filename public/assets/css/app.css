@@ -859,28 +859,28 @@ table {
 }
 
 .col-file-name {
-    width: 42%;
+    width: 34%;
 }
 
-.col-file-type {
-    width: 16%;
+.col-file-created {
+    width: 30%;
 }
 
 .col-file-size {
-    width: 10%;
+    width: 9%;
 }
 
 .col-file-meta {
-    width: 18%;
+    width: 15%;
 }
 
 .col-file-actions {
-    width: 14%;
+    width: 12%;
 }
 
 th,
 td {
-    padding: 13px 14px;
+    padding: 8px 12px;
     border-bottom: 1px solid var(--line);
     text-align: left;
     vertical-align: top;
@@ -896,12 +896,13 @@ th {
     background: #f7fbff;
     font-size: 13px;
     font-weight: 500;
+    line-height: 1.2;
 }
 
 .sort-header {
     min-height: auto;
     justify-content: flex-start;
-    gap: 7px;
+    gap: 6px;
     padding: 0;
     color: #27476f;
     background: transparent;
@@ -914,13 +915,17 @@ th {
     background: transparent;
 }
 
+.sort-header.active {
+    color: var(--primary-dark);
+}
+
 .sort-header i {
     color: var(--accent);
 }
 
 td {
     font-size: 14px;
-    line-height: 1.45;
+    line-height: 1.25;
 }
 
 tbody tr:hover {
@@ -929,28 +934,28 @@ tbody tr:hover {
 
 .file-name {
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 7px;
     font-weight: 400;
 }
 
 .file-name i {
-    margin-top: 3px;
+    margin-top: 0;
     color: #9f2f2f;
 }
 
 .file-info-btn {
-    min-height: 30px;
+    min-height: 26px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 5px;
     border: 1px solid #c8e0ec;
     border-radius: 999px;
-    padding: 0 10px;
+    padding: 0 8px;
     color: var(--primary);
     background: var(--primary-soft);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 400;
     box-shadow: none;
 }
@@ -1678,7 +1683,7 @@ td {
 .file-name {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     color: #142b56;
     font-weight: 400;
     min-width: 0;
@@ -1689,6 +1694,42 @@ td {
     font-weight: 400;
     overflow-wrap: anywhere;
     word-break: break-word;
+    line-height: 1.25;
+}
+
+.file-created {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    color: #526684;
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.file-created span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-created-separator {
+    flex: 0 0 auto;
+    color: #9aa8bc;
+}
+
+.file-created i {
+    width: 14px;
+    flex: 0 0 14px;
+    color: #60718f;
+    text-align: center;
 }
 
 .file-name i {
@@ -1703,18 +1744,18 @@ td {
 }
 
 .row-actions {
-    gap: 6px;
+    gap: 4px;
     justify-content: center;
     white-space: nowrap;
 }
 
 .icon-action-btn {
-    width: 32px;
-    min-height: 32px;
+    width: 28px;
+    min-height: 28px;
     color: #526684;
     background: transparent;
     border-color: transparent;
-    font-size: 15px;
+    font-size: 13px;
 }
 
 .download-action-btn {
@@ -1846,3 +1887,4 @@ td {
         justify-content: flex-start;
     }
 }
+

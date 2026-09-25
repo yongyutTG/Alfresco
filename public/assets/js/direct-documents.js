@@ -30,7 +30,9 @@
         totalItems: 0,
         currentItemCount: 0,
         hasKnownTotal: false,
+        sortField: 'created',
         nameSortDirection: 'asc',
+        createdSortDirection: 'desc',
     };
 
     const appLayout = document.querySelector('.app-layout');
@@ -46,6 +48,7 @@
     const pageSizeInput = document.getElementById('pageSize');
     const rows = document.getElementById('documentRows');
     const sortNameBtn = document.getElementById('sortNameBtn');
+    const sortCreatedBtn = document.getElementById('sortCreatedBtn');
     const message = document.getElementById('message');
     const resultCount = document.getElementById('resultCount');
     const pageInfo = document.getElementById('pageInfo');
@@ -1054,6 +1057,16 @@
         return matched ? matched.icon : 'fa-folder';
     }
 
+    function applyDocumentSortParams(url) {
+        const sortBy = state.sortField === 'created' ? 'created' : 'name';
+        const sortDirection = state.sortField === 'created'
+            ? state.createdSortDirection
+            : state.nameSortDirection;
+
+        url.searchParams.set('sortBy', sortBy);
+        url.searchParams.set('sortDirection', sortDirection);
+    }
+
     async function loadDocuments(options = {}) {
         const maxItems = Number(pageSizeInput.value || 25);
         const skipCount = (state.page - 1) * maxItems;
@@ -1095,6 +1108,7 @@
             url.searchParams.set('folderPath', state.folderPath);
             url.searchParams.set('maxItems', String(maxItems));
             url.searchParams.set('skipCount', String(skipCount));
+            applyDocumentSortParams(url);
             if (refreshKey) {
                 url.searchParams.set('_', refreshKey);
             }
@@ -1108,7 +1122,7 @@
         state.totalItems = totalInfo.totalItems;
         state.hasKnownTotal = totalInfo.hasKnownTotal;
 
-        renderRows(sortItemsByName(items));
+        renderRows(sortItems(items));
         setResultCount(items.length);
         const totalText = state.hasKnownTotal ? state.totalItems : items.length;
         const badgeText = keyword
@@ -1128,6 +1142,7 @@
         exactUrl.searchParams.set('exactName', keyword);
         exactUrl.searchParams.set('maxItems', String(maxItems));
         exactUrl.searchParams.set('skipCount', String(skipCount));
+        applyDocumentSortParams(exactUrl);
         const exactPayload = await requestJson(`${exactUrl.pathname}${exactUrl.search}`);
 
         if (pickItems(exactPayload).length) {
@@ -1140,6 +1155,7 @@
         partialUrl.searchParams.set('q', keyword);
         partialUrl.searchParams.set('maxItems', String(maxItems));
         partialUrl.searchParams.set('skipCount', String(skipCount));
+        applyDocumentSortParams(partialUrl);
         const partialPayload = await requestJson(`${partialUrl.pathname}${partialUrl.search}`);
         partialPayload.message = 'พบเอกสารที่ใกล้เคียงกับคำค้น';
         return partialPayload;
@@ -1170,7 +1186,6 @@
             const creationDate = escapeHtml(formatDate(item.creationDate));
             const lastModifiedBy = escapeHtml(item.lastModifiedBy || '-');
             const lastModificationDate = escapeHtml(formatDate(item.lastModificationDate));
-            const mimeType = escapeHtml(item.mimeType || '-');
             const allowRename = item.allowRename === true;
             const renameAction = allowRename
                 ? `
@@ -1189,10 +1204,9 @@
                         </div>
                     </td>
                     <td>
-                        <span class="file-badge">
-                            <i class="fa-solid fa-tag" aria-hidden="true"></i>
-                            <span>${mimeType}</span>
-                        </span>
+                        <div class="file-created">
+                            <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>วันที่สร้าง: ${creationDate}</span>
+                        </div>
                     </td>
                     <td>${sizeText}</td>
                     <td>
@@ -1229,7 +1243,17 @@ ${renameAction}
         }).join('');
     }
 
-    function sortItemsByName(items) {
+    function sortItems(items) {
+        if (state.sortField === 'created') {
+            return [...items].sort((left, right) => {
+                const leftTime = Date.parse(left.creationDate || '') || 0;
+                const rightTime = Date.parse(right.creationDate || '') || 0;
+                const result = leftTime - rightTime;
+
+                return state.createdSortDirection === 'asc' ? result : -result;
+            });
+        }
+
         return [...items].sort((left, right) => {
             const leftName = String(left.name || '');
             const rightName = String(right.name || '');
@@ -1252,9 +1276,27 @@ ${renameAction}
 
         sortNameBtn.setAttribute('aria-sort', isAscending ? 'ascending' : 'descending');
         sortNameBtn.setAttribute('title', isAscending ? 'เรียงชื่อไฟล์ A-Z' : 'เรียงชื่อไฟล์ Z-A');
+        sortNameBtn.classList.toggle('active', state.sortField === 'name');
 
         if (icon) {
             icon.className = isAscending ? 'fa-solid fa-arrow-down-a-z' : 'fa-solid fa-arrow-down-z-a';
+        }
+    }
+
+    function updateCreatedSortButton() {
+        if (!sortCreatedBtn) {
+            return;
+        }
+
+        const icon = sortCreatedBtn.querySelector('i');
+        const isAscending = state.createdSortDirection === 'asc';
+
+        sortCreatedBtn.setAttribute('aria-sort', isAscending ? 'ascending' : 'descending');
+        sortCreatedBtn.setAttribute('title', isAscending ? 'เรียงวันที่สร้างเก่าสุดก่อน' : 'เรียงวันที่สร้างล่าสุดก่อน');
+        sortCreatedBtn.classList.toggle('active', state.sortField === 'created');
+
+        if (icon) {
+            icon.className = isAscending ? 'fa-solid fa-arrow-up-wide-short' : 'fa-solid fa-arrow-down-wide-short';
         }
     }
 
@@ -1849,8 +1891,22 @@ ${renameAction}
 
     if (sortNameBtn) {
         sortNameBtn.addEventListener('click', () => {
-            state.nameSortDirection = state.nameSortDirection === 'asc' ? 'desc' : 'asc';
+            state.nameSortDirection = state.sortField === 'name' && state.nameSortDirection === 'asc' ? 'desc' : 'asc';
+            state.sortField = 'name';
+            state.page = 1;
             updateNameSortButton();
+            updateCreatedSortButton();
+            loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
+        });
+    }
+
+    if (sortCreatedBtn) {
+        sortCreatedBtn.addEventListener('click', () => {
+            state.createdSortDirection = state.sortField === 'created' && state.createdSortDirection === 'desc' ? 'asc' : 'desc';
+            state.sortField = 'created';
+            state.page = 1;
+            updateNameSortButton();
+            updateCreatedSortButton();
             loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
         });
     }
@@ -1881,7 +1937,10 @@ ${renameAction}
 
     setSelectedFolder('', 'หน้าหลัก', true);
     updateNameSortButton();
+    updateCreatedSortButton();
     updatePager(false);
     loadFolders().catch((error) => setMessage(error.message, true));
 })();
+
+
 
