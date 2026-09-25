@@ -307,9 +307,30 @@
 
         renderBreadcrumb(path, isHome);
 
-        document.querySelectorAll('.folder-item').forEach((button) => {
-            button.classList.toggle('active', button.dataset.key === (isHome ? 'home' : path));
+        updateFolderSelection();
+    }
+
+    function updateFolderSelection() {
+        const root = normalizePathForCompare(config.rootPath);
+        const selectedPath = normalizePathForCompare(state.folderPath || '');
+        const category = !state.isHomeSelected && selectedPath.startsWith(`${root}/`)
+            ? `${root}/${selectedPath.slice(root.length + 1).split('/')[0]}`
+            : '';
+        const group = [];
+
+        folderList.querySelectorAll('.folder-item').forEach((button) => {
+            const path = normalizePathForCompare(button.dataset.path || '');
+            const inCategory = Boolean(category) && (path === category || path.startsWith(`${category}/`));
+            button.classList.toggle('active', button.dataset.key === (state.isHomeSelected ? 'home' : state.folderPath));
+            button.classList.toggle('in-selected-category', inCategory);
+            button.classList.remove('category-first', 'category-last');
+            if (inCategory) {
+                group.push(button);
+            }
         });
+
+        group[0]?.classList.add('category-first');
+        group[group.length - 1]?.classList.add('category-last');
     }
 
     function renderBreadcrumb(path, isHome = false) {
@@ -666,6 +687,7 @@
         markFolderChildrenState(parentPath, children);
         parentButton.dataset.childrenRendered = 'true';
         updateFolderToggle(parentButton);
+        updateFolderSelection();
 
         return children;
     }
@@ -677,7 +699,7 @@
             .filter(Boolean);
 
         childButtons.forEach((button, index) => {
-            button.dataset.treeGuide = 'true';
+            button.dataset.treeGuide = Number(button.dataset.level) > 1 ? 'true' : 'false';
             button.dataset.treeGuideFirst = index === 0 ? 'true' : 'false';
             button.dataset.treeGuideLast = index === childButtons.length - 1 ? 'true' : 'false';
         });
@@ -702,6 +724,7 @@
 
         parentButton.dataset.childrenRendered = 'false';
         updateFolderToggle(parentButton);
+        updateFolderSelection();
     }
 
     function collapseAllFolderChildren() {
@@ -726,6 +749,7 @@
                 updateFolderToggle(current);
             }
         }
+        updateFolderSelection();
     }
 
     function updateFolderToggle(button) {
