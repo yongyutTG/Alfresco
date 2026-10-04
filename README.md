@@ -50,7 +50,10 @@ GET http://localhost:3001/user-api/alfresco/folders
 GET http://localhost:3001/user-api/alfresco/documents
 GET http://localhost:3001/user-api/alfresco/documents/search
 GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
+GET http://localhost:3001/user-api/alfresco/documents/versions?id=DOCUMENT_ID
 PATCH http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
+PUT http://localhost:3001/user-api/alfresco/documents/content?id=DOCUMENT_ID&name=file.pdf
+DELETE http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
 POST http://localhost:3001/auth/logout
 GET http://localhost:3001/user-api/alfresco/documents/:id/content
 GET http://localhost:3001/user-api/alfresco/documents/:id/content?name=file.pdf&action=download
@@ -123,6 +126,17 @@ allowRename สำหรับควบคุมการแสดงไอค�
 parentPath จาก endpoint /documents/location ซึ่ง backend จะบันทึก audit action `VIEW_FILE_DETAIL`
 ```
 
+modal รายละเอียดไฟล์แบ่งเป็น 2 แท็บ:
+
+```text
+ข้อมูลไฟล์
+-> แสดงชื่อไฟล์ ขนาด ผู้สร้าง วันที่สร้าง ผู้แก้ไขล่าสุด วันที่แก้ไขล่าสุด และตำแหน่งไฟล์
+
+ประวัติเวอร์ชัน
+-> เรียก /documents/versions?id=DOCUMENT_ID
+-> แสดงเวอร์ชัน วันที่แก้ไข ผู้แก้ไข ขนาด comment และปุ่มเปิด/ดาวน์โหลดเวอร์ชันนั้น
+```
+
 สิทธิ์แก้ไขแสดงทางคอลัมน์ `จัดการ` เท่านั้น ถ้า API ส่ง `allowRename: true` จะแสดงไอคอนดินสอ ถ้าไม่มีสิทธิ์จะไม่แสดงไอคอนนี้
 
 การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
@@ -170,6 +184,33 @@ Content-Type: application/json
 หลังบันทึกสำเร็จ หน้าเว็บจะเคลียร์คำค้น กลับไปหน้า 1 แล้วโหลดรายการเอกสารของ folder ปัจจุบันใหม่ด้วย `loadDocuments({ allowList: true, refresh: true })` เพื่อให้เห็นชื่อใหม่ทันที
 
 หน้าเว็บส่ง id ผ่าน query string เพื่อเก็บ id เต็มของ Alfresco เช่น `uuid;1.0` และเลี่ยงปัญหา `Route not found` จากอักขระพิเศษใน URL path
+
+## Update, Delete และ Version History
+
+คอลัมน์ `จัดการ` มี action เพิ่มเติม:
+
+```text
+Update ไฟล์
+-> เปิด modal เลือกไฟล์ใหม่
+-> ส่งไฟล์แบบ binary ไปที่ PUT /user-api/alfresco/documents/content?id=DOCUMENT_ID&name=file.pdf
+-> เป็นการแทนที่เนื้อหา/สร้าง version ใหม่ของเอกสารเดิม ไม่เปลี่ยนชื่อเอกสาร
+-> หลังสำเร็จจะ reload รายการเอกสารใน folder เดิม
+
+ลบไฟล์
+-> เปิด modal ยืนยันก่อนลบ
+-> เรียก DELETE /user-api/alfresco/documents?id=DOCUMENT_ID
+-> หลังสำเร็จจะ reload รายการเอกสารใน folder เดิม
+```
+
+ปุ่ม `Update` และ `ลบ` แสดงในคอลัมน์ `จัดการ` ตามสิทธิ์ที่ API ส่งกลับมา เช่น `allowUpdate`, `allowDelete`, `canUpdate`, `canDelete` หรือ fallback จาก `allowRename` ใน UI ทดลองปัจจุบัน แต่ backend ยังต้องตรวจสิทธิ์จริงจาก Alfresco เสมอ
+
+ประวัติเวอร์ชันดึงผ่าน endpoint:
+
+```http
+GET /user-api/alfresco/documents/versions?id=DOCUMENT_ID
+```
+
+หน้าเว็บแสดงรายการในแท็บ `ประวัติเวอร์ชัน` ภายใน modal รายละเอียดไฟล์ เพื่อไม่ให้ modal ล้นจอ และปุ่มเปิด/ดาวน์โหลดเวอร์ชันจะใช้ `objectId` ของเวอร์ชันนั้นเรียก endpoint content เดิม
 
 
 ## Logout และ Audit Log

@@ -512,16 +512,20 @@ renderRows(items)
 ข้อมูลที่แสดงในตาราง:
 
 - ชื่อไฟล์
-- ชนิดไฟล์
+- วันที่สร้าง
 - ขนาดไฟล์
 - ปุ่มรายละเอียดไฟล์
 - ปุ่มเปิดไฟล์
 - ปุ่มดาวน์โหลดไฟล์
 - ปุ่มแก้ไขชื่อไฟล์ในคอลัมน์จัดการ
+- ปุ่ม Update ไฟล์ในคอลัมน์จัดการ
+- ปุ่มลบไฟล์ในคอลัมน์จัดการ
 
 ปุ่มแก้ไขชื่อไฟล์จะแสดงเฉพาะไฟล์ที่ API ส่ง `allowRename: true` ถ้าไม่มีสิทธิ์แก้ไขชื่อไฟล์จะไม่แสดงไอคอนดินสอ
 
-คอลัมน์ `ข้อมูลไฟล์` แสดงเป็นปุ่ม `รายละเอียด` เพื่อลดความแน่นของตาราง เมื่อกดแล้วเปิด modal แสดง:
+คอลัมน์ `ข้อมูลไฟล์` แสดงเป็นปุ่ม `รายละเอียด` เพื่อลดความแน่นของตาราง เมื่อกดแล้วเปิด modal แบบแท็บ:
+
+แท็บ `ข้อมูลไฟล์` แสดง:
 
 - ชื่อไฟล์
 - ขนาดไฟล์
@@ -531,6 +535,16 @@ renderRows(items)
 - วันที่แก้ไขล่าสุด
 - สิทธิ์แก้ไขชื่อไฟล์ผ่าน field `allowRename`
 - ตำแหน่งไฟล์
+
+แท็บ `ประวัติเวอร์ชัน` แสดง:
+
+- เวอร์ชัน
+- วันที่แก้ไข
+- ผู้แก้ไข
+- ขนาด
+- comment
+- ปุ่มเปิดเวอร์ชันนั้น
+- ปุ่มดาวน์โหลดเวอร์ชันนั้น
 
 ปุ่มเปิดไฟล์จะเก็บ:
 
@@ -560,6 +574,20 @@ GET http://localhost:3001/user-api/alfresco/documents/location?id=DOCUMENT_ID
 ```
 
 ถ้าหาตำแหน่งไม่ได้ API จะตอบ `parentPath: null` และ modal จะแสดงข้อความว่าไม่พบข้อมูลตำแหน่งไฟล์
+
+ประวัติเวอร์ชันใน modal รายละเอียดจะเรียก API แยกเฉพาะไฟล์นั้น:
+
+```text
+GET http://localhost:3001/user-api/alfresco/documents/versions?id=DOCUMENT_ID
+```
+
+ถ้า endpoint แบบ query string ไม่พร้อมใช้งาน frontend จะลอง route เก่าแบบ path:
+
+```text
+GET http://localhost:3001/user-api/alfresco/documents/:id/versions
+```
+
+รายการเวอร์ชันอยู่ในแท็บของตัวเองและ scroll ภายใน modal เพื่อไม่ให้ modal ล้นจอ
 
 ## 10. แก้ไขชื่อไฟล์
 
@@ -625,7 +653,62 @@ PATCH rename สำเร็จ
 GET /user-api/alfresco/documents?folderPath=<folderPath>&maxItems=25&skipCount=0&_=<timestamp>
 ```
 
-## 11. เปิดไฟล์ PDF
+## 11. Update ไฟล์ ลบไฟล์ และ Version History
+
+ไฟล์:
+
+```text
+app/Views/documents/index.php
+public/assets/js/direct-documents.js
+public/assets/css/app.css
+```
+
+Update ไฟล์:
+
+```text
+กดไอคอน Update ในคอลัมน์จัดการ
+ -> เปิด modal เลือกไฟล์ใหม่
+ -> กด Update
+ -> ส่งไฟล์แบบ binary ไป UserAlfresco-api
+ -> backend แทนที่ content ของเอกสารเดิมใน Alfresco
+ -> ชื่อเอกสารเดิมไม่เปลี่ยน
+ -> โหลดรายการเอกสารใน folder ปัจจุบันใหม่
+```
+
+API ที่เรียก:
+
+```text
+PUT http://localhost:3001/user-api/alfresco/documents/content?id=DOCUMENT_ID&name=file.pdf
+Content-Type: application/pdf
+```
+
+ลบไฟล์:
+
+```text
+กดไอคอนลบในคอลัมน์จัดการ
+ -> เปิด modal ยืนยัน
+ -> กดลบไฟล์
+ -> เรียก DELETE
+ -> โหลดรายการเอกสารใน folder ปัจจุบันใหม่
+```
+
+API ที่เรียก:
+
+```text
+DELETE http://localhost:3001/user-api/alfresco/documents?id=DOCUMENT_ID
+```
+
+Version History:
+
+```text
+กดรายละเอียด
+ -> เปิด modal รายละเอียดไฟล์
+ -> แท็บข้อมูลไฟล์แสดง metadata และตำแหน่งไฟล์
+ -> แท็บประวัติเวอร์ชันแสดง versions จาก /documents/versions
+ -> ปุ่มเปิด/ดาวน์โหลดเวอร์ชันใช้ objectId ของ version นั้นเรียก endpoint content เดิม
+```
+
+## 12. เปิดไฟล์ PDF
 
 ไฟล์:
 
@@ -832,7 +915,9 @@ public/assets/js/direct-documents.js
  -> โหลด folder ตามสิทธิ์
  -> เลือก folder แล้วโหลดเอกสารทันที
  -> ค้นหา exactName ก่อน ถ้าไม่เจอค่อย q
- -> ดูรายละเอียดไฟล์ผ่าน modal และโหลดตำแหน่งไฟล์ด้วย endpoint แยก
+ -> ดูรายละเอียดไฟล์ผ่าน modal แบบแท็บ และโหลดตำแหน่งไฟล์/ประวัติเวอร์ชันด้วย endpoint แยก
+ -> Update file เป็น version ใหม่ผ่าน modal เลือกไฟล์
+ -> ลบไฟล์ผ่าน modal ยืนยัน
  -> เปิดไฟล์ด้วย fetch + blob
  -> logout
 ```

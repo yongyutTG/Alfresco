@@ -76,10 +76,26 @@
     const renameFileExtension = document.getElementById('renameFileExtension');
     const renameFileSaveBtn = document.getElementById('renameFileSaveBtn');
     const renameFileCancelBtn = document.getElementById('renameFileCancelBtn');
+    const updateFileModal = document.getElementById('updateFileModal');
+    const updateFileForm = document.getElementById('updateFileForm');
+    const updateFileCurrentName = document.getElementById('updateFileCurrentName');
+    const updateFileInput = document.getElementById('updateFileInput');
+    const updateFileSaveBtn = document.getElementById('updateFileSaveBtn');
+    const updateFileCancelBtn = document.getElementById('updateFileCancelBtn');
+    const deleteFileModal = document.getElementById('deleteFileModal');
+    const deleteFileCurrentName = document.getElementById('deleteFileCurrentName');
+    const deleteFileConfirmBtn = document.getElementById('deleteFileConfirmBtn');
+    const deleteFileCancelBtn = document.getElementById('deleteFileCancelBtn');
     const fileInfoModal = document.getElementById('fileInfoModal');
     const fileInfoList = document.getElementById('fileInfoList');
+    const fileVersionList = document.getElementById('fileVersionList');
+    const fileInfoTabs = document.querySelectorAll('[data-file-info-tab]');
+    const fileInfoDetailsPanel = document.getElementById('fileInfoDetailsPanel');
+    const fileInfoVersionsPanel = document.getElementById('fileInfoVersionsPanel');
     const fileInfoCloseBtn = document.getElementById('fileInfoCloseBtn');
     let activeRename = null;
+    let activeUpdate = null;
+    let activeDelete = null;
     let folderLoadRunId = 0;
     let folderTreeButtons = new Map();
     let folderTreeChildren = new Map();
@@ -470,6 +486,12 @@
         });
     }
 
+    async function deleteJson(path) {
+        return requestJson(path, {
+            method: 'DELETE',
+        });
+    }
+
     async function requestFileLocation(id) {
         const url = new URL('/user-api/alfresco/documents/location', config.apiBaseUrl);
         url.searchParams.set('id', id);
@@ -479,6 +501,21 @@
         } catch (error) {
             if (error.status === 404) {
                 return requestJson(`/user-api/alfresco/documents/${encodeURIComponent(id)}/location`);
+            }
+
+            throw error;
+        }
+    }
+
+    async function requestFileVersions(id) {
+        const url = new URL('/user-api/alfresco/documents/versions', config.apiBaseUrl);
+        url.searchParams.set('id', id);
+
+        try {
+            return await requestJson(`${url.pathname}${url.search}`);
+        } catch (error) {
+            if (error.status === 404) {
+                return requestJson(`/user-api/alfresco/documents/${encodeURIComponent(id)}/versions`);
             }
 
             throw error;
@@ -1187,10 +1224,26 @@
             const lastModifiedBy = escapeHtml(item.lastModifiedBy || '-');
             const lastModificationDate = escapeHtml(formatDate(item.lastModificationDate));
             const allowRename = item.allowRename === true;
+            const allowUpdate = item.allowUpdate === true || item.canUpdate === true || allowRename;
+            const allowDelete = item.allowDelete === true || item.canDelete === true || allowRename;
             const renameAction = allowRename
                 ? `
                             <button type="button" class="rename-file-btn icon-action-btn rename-action-btn" data-id="${id}" data-name="${openName}" data-allow-rename="true" aria-label="แก้ไขชื่อไฟล์" title="แก้ไขชื่อไฟล์">
                                 <i class="fa-regular fa-pen-to-square" aria-hidden="true"></i>
+                            </button>
+                `
+                : '';
+            const updateAction = allowUpdate
+                ? `
+                            <button type="button" class="update-file-btn icon-action-btn update-action-btn" data-id="${id}" data-name="${openName}" data-allow-update="true" aria-label="Update ไฟล์" title="Update ไฟล์">
+                                <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+                            </button>
+                `
+                : '';
+            const deleteAction = allowDelete
+                ? `
+                            <button type="button" class="delete-file-btn icon-action-btn delete-action-btn" data-id="${id}" data-name="${openName}" data-allow-delete="true" aria-label="ลบไฟล์" title="ลบไฟล์">
+                                <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
                             </button>
                 `
                 : '';
@@ -1236,6 +1289,8 @@
                                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                             </button>
 ${renameAction}
+${updateAction}
+${deleteAction}
                         </div>
                     </td>
                 </tr>
@@ -1424,6 +1479,8 @@ ${renameAction}
         `).join('');
 
         fileInfoModal.hidden = false;
+        setFileInfoTab('details');
+        renderVersionLoading();
         fileInfoCloseBtn?.focus();
 
         const locationValue = fileInfoList.querySelector('[data-detail-key="ตำแหน่งไฟล์"] dd');
@@ -1438,6 +1495,112 @@ ${renameAction}
         } catch (error) {
             locationValue.textContent = error.message || 'โหลดตำแหน่งไฟล์ไม่สำเร็จ';
         }
+
+        try {
+            const payload = await requestFileVersions(button.dataset.id);
+            renderVersionHistory(payload.versions || [], button.dataset.name || 'file.pdf');
+        } catch (error) {
+            renderVersionError(error.message || 'โหลดประวัติเวอร์ชันไม่สำเร็จ');
+        }
+    }
+
+    function setFileInfoTab(tabName) {
+        const isVersions = tabName === 'versions';
+
+        fileInfoTabs.forEach((tab) => {
+            const isActive = tab.dataset.fileInfoTab === tabName;
+            tab.classList.toggle('active', isActive);
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+
+        if (fileInfoDetailsPanel) {
+            fileInfoDetailsPanel.hidden = isVersions;
+            fileInfoDetailsPanel.classList.toggle('active', !isVersions);
+        }
+
+        if (fileInfoVersionsPanel) {
+            fileInfoVersionsPanel.hidden = !isVersions;
+            fileInfoVersionsPanel.classList.toggle('active', isVersions);
+        }
+    }
+
+    function renderVersionLoading() {
+        if (!fileVersionList) {
+            return;
+        }
+
+        fileVersionList.innerHTML = `
+            <div class="file-version-state">
+                <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                <span>กำลังโหลดประวัติเวอร์ชัน...</span>
+            </div>
+        `;
+    }
+
+    function renderVersionError(text) {
+        if (!fileVersionList) {
+            return;
+        }
+
+        fileVersionList.innerHTML = `
+            <div class="file-version-state error">
+                <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                <span>${escapeHtml(text)}</span>
+            </div>
+        `;
+    }
+
+    function renderVersionHistory(versions, fallbackName) {
+        if (!fileVersionList) {
+            return;
+        }
+
+        if (!versions.length) {
+            fileVersionList.innerHTML = `
+                <div class="file-version-state">
+                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                    <span>ไม่พบประวัติเวอร์ชัน</span>
+                </div>
+            `;
+            return;
+        }
+
+        fileVersionList.innerHTML = versions.map((version) => {
+            const id = escapeHtml(version.id || '');
+            const name = escapeHtml(version.name || fallbackName || 'file.pdf');
+            const versionLabel = escapeHtml(version.versionLabel || '-');
+            const modifiedBy = escapeHtml(version.lastModifiedBy || version.createdBy || '-');
+            const modifiedDate = escapeHtml(formatDate(version.lastModificationDate || version.creationDate));
+            const sizeText = escapeHtml(formatSize(version.size));
+            const comment = escapeHtml(version.checkinComment || '-');
+            const isLatest = version.isLatestVersion === true || version.isLatestVersion === 'true';
+            const disabledAttr = id ? '' : ' disabled';
+
+            return `
+                <article class="file-version-item">
+                    <div class="file-version-main">
+                        <div class="file-version-title">
+                            <span class="file-version-label">เวอร์ชัน ${versionLabel}</span>
+                            ${isLatest ? '<span class="file-version-current">ล่าสุด</span>' : ''}
+                        </div>
+                        <div class="file-version-meta">
+                            <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>${modifiedDate}</span>
+                            <span><i class="fa-solid fa-user" aria-hidden="true"></i>${modifiedBy}</span>
+                            <span><i class="fa-solid fa-weight-hanging" aria-hidden="true"></i>${sizeText}</span>
+                        </div>
+                        <div class="file-version-comment">Comment: ${comment}</div>
+                    </div>
+                    <div class="file-version-actions">
+                        <button type="button" class="open-file-btn icon-action-btn" data-id="${id}" data-name="${name}" title="เปิดเวอร์ชันนี้" aria-label="เปิดเวอร์ชัน ${versionLabel}"${disabledAttr}>
+                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${name}" title="ดาวน์โหลดเวอร์ชันนี้" aria-label="ดาวน์โหลดเวอร์ชัน ${versionLabel}"${disabledAttr}>
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </article>
+            `;
+        }).join('');
     }
 
     function hideFileInfoModal() {
@@ -1560,6 +1723,136 @@ ${renameAction}
         state.page = 1;
         await loadDocuments({ allowList: true, refresh: true });
         setMessage(payload.message || `แก้ไขชื่อไฟล์เป็น ${trimmedName} แล้ว`);
+        return true;
+    }
+
+    function showUpdateModal(id, currentName) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        if (!updateFileModal || !updateFileInput || !updateFileCurrentName) {
+            setMessage('ไม่พบ modal Update ไฟล์', true);
+            return;
+        }
+
+        activeUpdate = { id, currentName: currentName || '' };
+        updateFileCurrentName.textContent = currentName || '-';
+        updateFileInput.value = '';
+        updateFileModal.hidden = false;
+
+        window.setTimeout(() => {
+            updateFileInput.focus();
+        }, 0);
+    }
+
+    function hideUpdateModal() {
+        if (updateFileModal) {
+            updateFileModal.hidden = true;
+        }
+
+        activeUpdate = null;
+    }
+
+    function setUpdateModalBusy(isBusy) {
+        if (updateFileInput) {
+            updateFileInput.disabled = isBusy;
+        }
+
+        if (updateFileSaveBtn) {
+            updateFileSaveBtn.disabled = isBusy;
+            updateFileSaveBtn.innerHTML = isBusy
+                ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลัง Update</span>'
+                : '<i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i><span>Update</span>';
+        }
+
+        if (updateFileCancelBtn) {
+            updateFileCancelBtn.disabled = isBusy;
+        }
+    }
+
+    async function updateFileContent(id, currentName, file) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        if (!file) {
+            setMessage('กรุณาเลือกไฟล์ใหม่', true);
+            updateFileInput?.focus();
+            return false;
+        }
+
+        setMessage(`กำลัง Update ไฟล์ ${currentName || '-'}...`);
+
+        const url = new URL('/user-api/alfresco/documents/content', config.apiBaseUrl);
+        url.searchParams.set('id', id);
+        url.searchParams.set('name', file.name || currentName || '');
+        const payload = await requestJson(`${url.pathname}${url.search}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
+        });
+
+        keywordInput.value = '';
+        state.page = 1;
+        await loadDocuments({ allowList: true, refresh: true });
+        setMessage(payload.message || `Update ไฟล์ ${currentName || '-'} แล้ว`);
+        return true;
+    }
+
+    function showDeleteModal(id, currentName) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        if (!deleteFileModal || !deleteFileCurrentName) {
+            setMessage('ไม่พบ modal ลบไฟล์', true);
+            return;
+        }
+
+        activeDelete = { id, currentName: currentName || '' };
+        deleteFileCurrentName.textContent = currentName || '-';
+        deleteFileModal.hidden = false;
+        deleteFileCancelBtn?.focus();
+    }
+
+    function hideDeleteModal() {
+        if (deleteFileModal) {
+            deleteFileModal.hidden = true;
+        }
+
+        activeDelete = null;
+    }
+
+    function setDeleteModalBusy(isBusy) {
+        if (deleteFileConfirmBtn) {
+            deleteFileConfirmBtn.disabled = isBusy;
+            deleteFileConfirmBtn.innerHTML = isBusy
+                ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลังลบ</span>'
+                : '<i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>ลบไฟล์</span>';
+        }
+
+        if (deleteFileCancelBtn) {
+            deleteFileCancelBtn.disabled = isBusy;
+        }
+    }
+
+    async function deleteFile(id, currentName) {
+        if (!id) {
+            throw new Error('ไม่พบ id ของไฟล์');
+        }
+
+        setMessage(`กำลังลบไฟล์ ${currentName || '-'}...`);
+
+        const url = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
+        url.searchParams.set('id', id);
+        const payload = await deleteJson(`${url.pathname}${url.search}`);
+        keywordInput.value = '';
+        state.page = 1;
+        await loadDocuments({ allowList: true, refresh: true });
+        setMessage(payload.message || `ลบไฟล์ ${currentName || '-'} แล้ว`);
         return true;
     }
 
@@ -1805,6 +2098,28 @@ ${renameAction}
         });
     }
 
+    fileInfoTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            setFileInfoTab(tab.dataset.fileInfoTab || 'details');
+        });
+    });
+
+    if (fileVersionList) {
+        fileVersionList.addEventListener('click', (event) => {
+            const openButton = event.target.closest('.open-file-btn');
+            const downloadButton = event.target.closest('.download-file-btn');
+
+            if (openButton) {
+                openFile(openButton.dataset.id, openButton.dataset.name).catch((error) => setMessage(error.message, true));
+                return;
+            }
+
+            if (downloadButton) {
+                downloadFile(downloadButton.dataset.id, downloadButton.dataset.name).catch((error) => setMessage(error.message, true));
+            }
+        });
+    }
+
     if (renameFileForm) {
         renameFileForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -1842,9 +2157,91 @@ ${renameAction}
         });
     }
 
+    if (updateFileForm) {
+        updateFileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!activeUpdate || !updateFileInput) {
+                return;
+            }
+
+            setUpdateModalBusy(true);
+
+            try {
+                const didUpdate = await updateFileContent(
+                    activeUpdate.id,
+                    activeUpdate.currentName,
+                    updateFileInput.files?.[0] || null
+                );
+
+                if (didUpdate) {
+                    hideUpdateModal();
+                }
+            } catch (error) {
+                setMessage(error.message, true);
+            } finally {
+                setUpdateModalBusy(false);
+            }
+        });
+    }
+
+    if (updateFileCancelBtn) {
+        updateFileCancelBtn.addEventListener('click', () => hideUpdateModal());
+    }
+
+    if (updateFileModal) {
+        updateFileModal.addEventListener('click', (event) => {
+            if (event.target === updateFileModal) {
+                hideUpdateModal();
+            }
+        });
+    }
+
+    if (deleteFileConfirmBtn) {
+        deleteFileConfirmBtn.addEventListener('click', async () => {
+            if (!activeDelete) {
+                return;
+            }
+
+            setDeleteModalBusy(true);
+
+            try {
+                const didDelete = await deleteFile(activeDelete.id, activeDelete.currentName);
+
+                if (didDelete) {
+                    hideDeleteModal();
+                }
+            } catch (error) {
+                setMessage(error.message, true);
+            } finally {
+                setDeleteModalBusy(false);
+            }
+        });
+    }
+
+    if (deleteFileCancelBtn) {
+        deleteFileCancelBtn.addEventListener('click', () => hideDeleteModal());
+    }
+
+    if (deleteFileModal) {
+        deleteFileModal.addEventListener('click', (event) => {
+            if (event.target === deleteFileModal) {
+                hideDeleteModal();
+            }
+        });
+    }
+
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && renameFileModal && !renameFileModal.hidden) {
             hideRenameModal();
+        }
+
+        if (event.key === 'Escape' && updateFileModal && !updateFileModal.hidden) {
+            hideUpdateModal();
+        }
+
+        if (event.key === 'Escape' && deleteFileModal && !deleteFileModal.hidden) {
+            hideDeleteModal();
         }
 
         if (event.key === 'Escape' && fileInfoModal && !fileInfoModal.hidden) {
@@ -1857,6 +2254,8 @@ ${renameAction}
         const downloadButton = event.target.closest('.download-file-btn');
         const infoButton = event.target.closest('.file-info-btn');
         const renameButton = event.target.closest('.rename-file-btn');
+        const updateButton = event.target.closest('.update-file-btn');
+        const deleteButton = event.target.closest('.delete-file-btn');
 
         if (renameButton) {
             try {
@@ -1866,6 +2265,34 @@ ${renameAction}
                 }
 
                 showRenameModal(renameButton.dataset.id, renameButton.dataset.name);
+            } catch (error) {
+                setMessage(error.message, true);
+            }
+            return;
+        }
+
+        if (updateButton) {
+            try {
+                if (updateButton.dataset.allowUpdate !== 'true') {
+                    setMessage('คุณไม่มีสิทธิ์ Update ไฟล์นี้', true);
+                    return;
+                }
+
+                showUpdateModal(updateButton.dataset.id, updateButton.dataset.name);
+            } catch (error) {
+                setMessage(error.message, true);
+            }
+            return;
+        }
+
+        if (deleteButton) {
+            try {
+                if (deleteButton.dataset.allowDelete !== 'true') {
+                    setMessage('คุณไม่มีสิทธิ์ลบไฟล์นี้', true);
+                    return;
+                }
+
+                showDeleteModal(deleteButton.dataset.id, deleteButton.dataset.name);
             } catch (error) {
                 setMessage(error.message, true);
             }

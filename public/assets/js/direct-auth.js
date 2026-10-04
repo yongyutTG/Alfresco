@@ -21,7 +21,6 @@
 
     if (existingToken && hasIdleExpired()) {
         clearStoredSession();
-        sessionStorage.setItem(storage.sessionMessage, 'Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่');
         existingToken = null;
     }
 

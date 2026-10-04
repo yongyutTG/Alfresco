@@ -57,13 +57,72 @@
         </form>
     </div>
 
+    <div id="updateFileModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="updateFileTitle" hidden>
+        <form id="updateFileForm" class="session-dialog update-file-dialog">
+            <div class="update-file-icon" aria-hidden="true">
+                <i class="fa-solid fa-file-arrow-up"></i>
+            </div>
+            <h2 id="updateFileTitle">Update ไฟล์</h2>
+            <p id="updateFileCurrentName" class="rename-current-name">-</p>
+            <label class="rename-field">
+                <span>เลือกไฟล์ใหม่</span>
+                <input id="updateFileInput" type="file" required>
+            </label>
+            <div class="session-actions split-actions">
+                <button id="updateFileSaveBtn" type="submit">
+                    <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+                    <span>Update</span>
+                </button>
+                <button id="updateFileCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="deleteFileModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="deleteFileTitle" hidden>
+        <div class="session-dialog delete-file-dialog">
+            <div class="delete-file-icon" aria-hidden="true">
+                <i class="fa-regular fa-trash-can"></i>
+            </div>
+            <h2 id="deleteFileTitle">ยืนยันการลบไฟล์</h2>
+            <p>ต้องการลบไฟล์นี้หรือไม่?</p>
+            <p id="deleteFileCurrentName" class="rename-current-name">-</p>
+            <div class="session-actions split-actions">
+                <button id="deleteFileConfirmBtn" type="button" class="danger-btn">
+                    <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                    <span>ลบไฟล์</span>
+                </button>
+                <button id="deleteFileCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
     <div id="fileInfoModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle" hidden>
         <div class="session-dialog file-info-dialog">
             <div class="file-info-icon" aria-hidden="true">
                 <i class="fa-solid fa-circle-info"></i>
             </div>
             <h2 id="fileInfoTitle">รายละเอียดไฟล์</h2>
-            <dl id="fileInfoList" class="file-info-list"></dl>
+            <div class="file-info-tabs" role="tablist" aria-label="รายละเอียดไฟล์">
+                <button id="fileInfoDetailsTab" type="button" class="file-info-tab active" role="tab" aria-selected="true" aria-controls="fileInfoDetailsPanel" data-file-info-tab="details">
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                    <span>ข้อมูลไฟล์</span>
+                </button>
+                <button id="fileInfoVersionsTab" type="button" class="file-info-tab" role="tab" aria-selected="false" aria-controls="fileInfoVersionsPanel" data-file-info-tab="versions">
+                    <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+                    <span>ประวัติเวอร์ชัน</span>
+                </button>
+            </div>
+            <div id="fileInfoDetailsPanel" class="file-info-panel active" role="tabpanel" aria-labelledby="fileInfoDetailsTab">
+                <dl id="fileInfoList" class="file-info-list"></dl>
+            </div>
+            <div id="fileInfoVersionsPanel" class="file-info-panel" role="tabpanel" aria-labelledby="fileInfoVersionsTab" hidden>
+                <section class="file-version-section" aria-labelledby="fileVersionTitle">
+                    <h3 id="fileVersionTitle">ประวัติเวอร์ชัน</h3>
+                    <div id="fileVersionList" class="file-version-list">
+                        <div class="file-version-state">กำลังโหลดประวัติเวอร์ชัน...</div>
+                    </div>
+                </section>
+            </div>
             <div class="session-actions">
                 <button id="fileInfoCloseBtn" type="button" class="secondary-btn">ปิด</button>
             </div>

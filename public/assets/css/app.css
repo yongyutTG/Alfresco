@@ -318,17 +318,31 @@ button:disabled {
 }
 
 .rename-dialog,
+.update-file-dialog,
+.delete-file-dialog,
 .file-info-dialog {
     text-align: left;
 }
 
+.file-info-dialog {
+    width: min(680px, 100%);
+}
+
 .rename-dialog h2,
+.update-file-dialog h2,
 .file-info-dialog h2 {
     color: var(--primary);
     text-align: center;
 }
 
+.delete-file-dialog h2 {
+    color: var(--danger);
+    text-align: center;
+}
+
 .rename-icon,
+.update-file-icon,
+.delete-file-icon,
 .file-info-icon {
     width: 54px;
     height: 54px;
@@ -340,6 +354,12 @@ button:disabled {
     color: var(--primary);
     background: var(--primary-soft);
     font-size: 24px;
+}
+
+.delete-file-icon {
+    border-color: #ffc7c7;
+    color: var(--danger);
+    background: var(--danger-bg);
 }
 
 .session-dialog p {
@@ -368,6 +388,11 @@ button:disabled {
 
 .rename-field input {
     width: 100%;
+}
+
+.rename-field input[type="file"] {
+    min-height: auto;
+    padding: 10px 12px;
 }
 
 .rename-input-group {
@@ -417,6 +442,50 @@ button:disabled {
     margin: 0 0 22px;
 }
 
+.file-info-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 14px;
+    border: 1px solid #dbe5f1;
+    border-radius: 8px;
+    padding: 4px;
+    background: #f8fbff;
+}
+
+.file-info-tab {
+    min-height: 36px;
+    gap: 7px;
+    border-radius: 6px;
+    padding: 0 10px;
+    color: #526684;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+.file-info-tab:hover,
+.file-info-tab:focus-visible {
+    color: #17315c;
+    background: #edf1f6;
+}
+
+.file-info-tab.active {
+    color: #fff;
+    background: var(--primary);
+}
+
+.file-info-panel {
+    max-height: min(52vh, 430px);
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.file-info-panel[hidden] {
+    display: none;
+}
+
 .file-info-list div {
     display: grid;
     grid-template-columns: 132px minmax(0, 1fr);
@@ -438,6 +507,101 @@ button:disabled {
     font-size: 13px;
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.file-version-section {
+    margin: 0 0 22px;
+}
+
+.file-version-section h3 {
+    margin: 0 0 10px;
+    color: #17315c;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.file-version-list {
+    display: grid;
+    gap: 8px;
+}
+
+.file-version-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #edf1f6;
+    border-radius: 7px;
+    padding: 10px 12px;
+    color: #60718f;
+    background: #f8fbff;
+    font-size: 13px;
+}
+
+.file-version-state.error {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border-color: #ffc7c7;
+}
+
+.file-version-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    border: 1px solid #edf1f6;
+    border-radius: 7px;
+    padding: 10px 12px;
+    background: #fff;
+}
+
+.file-version-main {
+    min-width: 0;
+}
+
+.file-version-title,
+.file-version-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    align-items: center;
+}
+
+.file-version-label {
+    color: #17315c;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.file-version-current {
+    border-radius: 999px;
+    padding: 2px 8px;
+    color: var(--primary);
+    background: var(--primary-soft);
+    font-size: 11px;
+}
+
+.file-version-meta {
+    margin-top: 5px;
+    color: #60718f;
+    font-size: 12px;
+}
+
+.file-version-meta span {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.file-version-comment {
+    margin-top: 5px;
+    color: #60718f;
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.file-version-actions {
+    display: flex;
+    gap: 4px;
 }
 
 .session-actions {
@@ -1763,15 +1927,29 @@ td {
     background: transparent;
 }
 
+.delete-action-btn {
+    color: #526684;
+    background: transparent;
+}
+
 .row-actions .icon-action-btn:hover,
 .row-actions .icon-action-btn:focus-visible,
 .row-actions .download-action-btn:hover,
 .row-actions .download-action-btn:focus-visible,
+.row-actions .update-file-btn:hover,
+.row-actions .update-file-btn:focus-visible,
 .row-actions .rename-file-btn:hover,
 .row-actions .rename-file-btn:focus-visible {
     color: #17315c;
     background: #edf1f6;
     border-color: #d4deec;
+}
+
+.row-actions .delete-file-btn:hover,
+.row-actions .delete-file-btn:focus-visible {
+    color: var(--danger);
+    background: var(--danger-bg);
+    border-color: #ffc7c7;
 }
 
 .loading-spinner-row {
