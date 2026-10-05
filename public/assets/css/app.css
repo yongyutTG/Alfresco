@@ -131,6 +131,19 @@ code {
     flex: 0 0 34px;
 }
 
+.brand-logo {
+    display: block;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+}
+
+.brand-logo.small {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+}
+
 .brand-block h2 {
     margin: 0 0 4px;
     font-size: 24px;
@@ -1266,51 +1279,101 @@ body {
     border-radius: 7px;
 }
 
+.brand-logo.small {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    object-fit: contain;
+}
+
 .app-title {
-    width: 200px;
-    flex: 0 0 200px;
-    gap: 10px;
+    width: 520px;
+    flex: 0 1 520px;
+    gap: 12px;
     padding-left: 28px;
+    min-width: 0;
+}
+
+.app-title > span {
+    min-width: 0;
 }
 
 .app-title strong {
-    color: #0c1d42;
-    font-size: 15px;
-    font-weight: 600;
+    color: #3d216b;
+    font-size: 16px;
+    font-weight: 700;
     line-height: 1.1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .app-title small {
     margin-top: 2px;
-    color: #60718f;
-    font-size: 12px;
-    line-height: 1.15;
+    color: #3d216b;
+    font-size: 10px;
+    font-style: normal;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .user-box {
-    gap: 16px;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 0 6px 12px;
+}
+
+.user-badge {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 50%;
+    color: #2f6f92;
+    background: #edf7fb;
+    font-size: 16px;
+}
+
+.user-meta {
+    display: grid;
+    gap: 1px;
+    min-width: 0;
+    text-align: right;
+}
+
+.user-label {
+    color: #7d8ba3;
+    font-size: 11px;
+    line-height: 1.1;
 }
 
 .user-name {
+    max-width: 180px;
+    overflow: hidden;
     color: #13264e;
-    font-weight: 400;
-}
-
-.user-chevron {
-    color: #7d8ba3;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .logout-icon-btn {
-    width: 54px;
-    min-height: 54px;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    min-height: 44px;
+    margin-left: 8px;
     border: 0;
     border-left: 1px solid #e0e8f3;
     border-radius: 0;
-    padding: 0 0 0 14px;
+    padding: 0 0 0 12px;
     color: #2f6f92;
     background: transparent;
-    font-size: 24px;
+    font-size: 22px;
 }
 
 .logout-icon-btn:hover,

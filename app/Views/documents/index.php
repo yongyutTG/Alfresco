@@ -131,20 +131,21 @@
 
     <header class="topbar">
         <a class="app-title" href="<?= site_url('documents') ?>">
-            <span class="brand-mark small">A</span>
+            <img class="brand-logo small" src="<?= base_url('images/logo_coop.png') ?>" alt="Logo">
             <span>
-                <strong>Alfresco</strong>
-                <small>Document Browser</small>
+                <strong class="coop-title">สหกรณ์ออมทรัพย์พนักงานบริษัท การบินไทย จำกัด</strong>
+                <small class="coop-subtitle">เป็นสหกรณ์ออมทรัพย์ที่มั่นคง โปร่งใส ก้าวไกลด้วยเทคโนโลยี เอื้ออาทรต่อสมาชิกและสังคม</small>
             </span>
         </a>
 
         <div class="user-box">
-            <span class="user-label">
+            <span class="user-badge" aria-hidden="true">
                 <i class="fa-solid fa-user" aria-hidden="true"></i>
-                <span>ยินดีต้อนรับ</span>
             </span>
-            <span id="userName" class="user-name">-</span>
-            <i class="fa-solid fa-chevron-down user-chevron" aria-hidden="true"></i>
+            <span class="user-meta">
+                <span class="user-label">ยินดีต้อนรับ</span>
+                <span id="userName" class="user-name">-</span>
+            </span>
             <button id="logoutBtn" type="button" class="logout-icon-btn" aria-label="ออกจากระบบ" title="ออกจากระบบ">
                 <i class="fa-solid fa-power-off" aria-hidden="true"></i>
             </button>

@@ -67,6 +67,33 @@ Authorization: Bearer <accessToken>
 
 ## Document API Behavior
 
+## Header และ Sidebar UI
+
+หน้า documents ใช้โลโก้สหกรณ์จาก `public/images/logo_coop.png` แบบเดียวกับโปรเจค PcDetail โดยหัวเว็บแสดง:
+
+```text
+สหกรณ์ออมทรัพย์พนักงานบริษัท การบินไทย จำกัด
+เป็นสหกรณ์ออมทรัพย์ที่มั่นคง โปร่งใส ก้าวไกลด้วยเทคโนโลยี เอื้ออาทรต่อสมาชิกและสังคม
+```
+
+ค่าหลักของหัวเว็บ:
+
+```text
+โลโก้หน้า documents: 42x42px
+ชื่อบริษัท: 16px สี #3d216b
+subtitle: 10px สี #3d216b
+```
+
+กล่องผู้ใช้งานด้านขวาแสดงเป็น profile block มีไอคอนผู้ใช้ในวงกลม ข้อความ `ยินดีต้อนรับ` และชื่อจาก `localStorage` key `alfresco_direct_username`
+
+sidebar ยังใช้วิธีลากปรับความกว้างด้วย resize handle เท่านั้น ไม่มีปุ่มย่อ/ขยายเมนูแล้ว ค่าความกว้างถูกจำไว้ใน `localStorage` key `alfresco_direct_sidebar_width`
+
+```text
+sidebar min width: 220px
+sidebar default width: 300px
+sidebar max width: 360px
+```
+
 หน้า documents แยกการทำงานเป็น 2 แบบ:
 
 ```text
@@ -79,7 +106,6 @@ Authorization: Bearer <accessToken>
 -> ถ้ากด คลังเอกสาร จะโหลดเอกสารทั้งหมดในคลัง รวม folder ย่อยทุกชั้น
 -> folder ที่มีลูกจะแสดง chevron เปิด/ปิด
 -> จำ folder ล่าสุดใน sessionStorage และเปิดกลับมาที่ folder เดิมหลัง refresh หน้า
--> มีปุ่ม ปิดทั้งหมด ใน sidebar สำหรับปิด folder ย่อยทั้งหมด
 
 เลือก folder
 -> กดแถบ folder จะเปิด/ปิด folder ย่อยพร้อมกับ list เอกสารใน folder นั้นด้วย /documents โดยรวมเอกสารใน folder ย่อยด้วย
@@ -97,9 +123,11 @@ Authorization: Bearer <accessToken>
 -> รายการผลลัพธ์เดิมที่ได้จากการเลือก folder ยังแสดงอยู่
 
 กดปุ่มล้าง
--> ลบคำค้น
--> ถ้ามี folder ที่เลือกอยู่ จะโหลดรายการเอกสารของ folder เดิมกลับมา
--> ถ้ายังไม่ได้เลือก folder จะกลับไปหน้าหลัก
+-> ลบเฉพาะข้อความในช่องค้นหา
+-> focus กลับไปที่ช่องค้นหา
+-> ไม่ reload เอกสาร
+-> ไม่ล้างผลลัพธ์เดิม
+-> ไม่เปลี่ยน folder หรือ pagination
 
 กดปุ่มค้นหา + กรอกคำค้น
 -> ค้นหาเอกสารด้วย /documents/search

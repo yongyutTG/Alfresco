@@ -11,7 +11,7 @@
 <body>
   <main class="shell">
     <div class="brand">
-      <!-- <div class="brand-mark">A</div> -->
+      <img class="brand-logo" src="<?= base_url('images/logo_coop.png') ?>" alt="Logo">
       <h1>ระบบ E-Documents Alfresco</h1>
       <div class="subtitle">เข้าสู่ระบบด้วยบัญชี Alfresco เพื่อดูเอกสารตามสิทธิ์</div>
     </div>

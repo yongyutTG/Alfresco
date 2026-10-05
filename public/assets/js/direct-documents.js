@@ -129,7 +129,7 @@
         }
 
         const minWidth = 220;
-        const maxWidth = 460;
+        const maxWidth = 360;
         const savedWidth = Number(localStorage.getItem(storage.sidebarWidth));
 
         if (Number.isFinite(savedWidth) && savedWidth >= minWidth && savedWidth <= maxWidth) {
@@ -2010,33 +2010,8 @@ ${deleteAction}
     });
 
     clearBtn.addEventListener('click', () => {
-        const hadKeyword = Boolean(keywordInput.value.trim());
         keywordInput.value = '';
         keywordInput.focus();
-        state.page = 1;
-        state.currentItemCount = 0;
-        state.totalItems = 0;
-        state.hasKnownTotal = false;
-        setResultCount(0);
-
-        if (state.isHomeSelected || !state.folderPath) {
-            setSelectedFolder('', 'หน้าหลัก', true);
-            showSelectFolderPrompt();
-            setMessage(hadKeyword ? 'ล้างคำค้นแล้ว กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร' : 'กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร');
-            updatePager(false);
-            return;
-        }
-
-        setMessage(hadKeyword ? 'ล้างคำค้นแล้ว แสดงเอกสารทั้งหมดใน folder นี้' : 'กำลังโหลดรายการเอกสารใน folder นี้...');
-        showLoadingSpinner();
-        updatePager(true);
-
-        loadDocuments({ allowList: true }).catch((error) => {
-            setMessage(error.message, true);
-            setFolderResultBadge(`${state.folderLabel || 'folder ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
-            rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
-            updatePager(false);
-        });
     });
 
     reloadFoldersBtn.addEventListener('click', () => loadFolders().catch((error) => setMessage(error.message, true)));

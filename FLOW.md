@@ -281,6 +281,51 @@ if (!token) {
  -> ถ้ามี token ใช้เรียก API ต่อ
 ```
 
+## 5.1 Header และ Sidebar UI
+
+ไฟล์:
+
+```text
+app/Views/documents/index.php
+public/assets/css/app.css
+public/assets/js/direct-documents.js
+```
+
+Header หน้า documents ใช้โลโก้สหกรณ์จาก `public/images/logo_coop.png` แบบเดียวกับโปรเจค PcDetail:
+
+```text
+โลโก้: 42x42px
+ชื่อบริษัท: สหกรณ์ออมทรัพย์พนักงานบริษัท การบินไทย จำกัด
+ชื่อบริษัท font-size: 16px
+subtitle font-size: 10px
+สีข้อความ: #3d216b
+```
+
+subtitle:
+
+```text
+เป็นสหกรณ์ออมทรัพย์ที่มั่นคง โปร่งใส ก้าวไกลด้วยเทคโนโลยี เอื้ออาทรต่อสมาชิกและสังคม
+```
+
+กล่องผู้ใช้งานด้านขวาเป็น profile block:
+
+```text
+ไอคอนผู้ใช้ในวงกลม
+label: ยินดีต้อนรับ
+ชื่อผู้ใช้จาก localStorage key alfresco_direct_username
+ปุ่ม logout เป็นไอคอน power
+```
+
+sidebar:
+
+```text
+ใช้ CSS variable --sidebar-width
+ค่าเริ่มต้น 300px
+ลากปรับได้ระหว่าง 220px ถึง 360px
+จำค่าใน localStorage key alfresco_direct_sidebar_width
+ไม่มีปุ่มย่อ/ขยายเมนู
+```
+
 ## 6. โหลด Folder ตามสิทธิ์
 
 ไฟล์:
@@ -322,7 +367,8 @@ Accept: application/json
 - ถ้า user กดแถบ `คลังเอกสาร` จะโหลดเอกสารทั้งหมดในคลัง รวม folder ย่อยทุกชั้น
 - folder ที่มีลูกจะแสดง chevron เพื่อบอกสถานะเปิด/ปิด
 - จดจำ folder ล่าสุดไว้ใน `sessionStorage` และเปิดกลับมาที่ folder เดิมหลัง refresh หน้า
-- มีปุ่ม `ปิดทั้งหมด` ใน sidebar สำหรับปิด folder ย่อยทั้งหมดโดยไม่ล้างผลเอกสาร
+- sidebar ใช้ resize handle สำหรับลากปรับความกว้างเท่านั้น ไม่มีปุ่มย่อ/ขยายเมนู
+- ความกว้าง sidebar ต่ำสุด `220px`, ค่าเริ่มต้น `300px`, สูงสุด `360px`
 
 สรุป flow:
 
@@ -482,17 +528,16 @@ GET /user-api/alfresco/documents/search?folderPath=<folderPath>&q=<keyword>&maxI
 
 ### 8.3 กรณีกดปุ่มล้าง
 
-ปุ่มล้างจะลบคำค้นออกก่อน แล้วดูว่าอยู่ใน folder ไหน
+ปุ่มล้างใช้สำหรับล้างเฉพาะข้อความในช่องค้นหา ไม่ reload เอกสารและไม่ล้างผลลัพธ์เดิม
 
 ```text
-กดล้าง + มี folder ที่เลือกอยู่
- -> เรียก loadDocuments({ allowList: true })
- -> GET /user-api/alfresco/documents?folderPath=<folderPath>
- -> แสดงรายการเอกสารของ folder เดิมกลับมา
-
-กดล้าง + ยังอยู่หน้าหลัก
- -> ไม่เรียก API เอกสาร
- -> แสดงข้อความให้เลือก folder
+กดล้าง
+ -> keywordInput.value = ''
+ -> keywordInput.focus()
+ -> ไม่เรียก API
+ -> ไม่ reset pagination
+ -> ไม่เปลี่ยน folder
+ -> ไม่ล้าง documentRows
 ```
 
 ## 9. Render ตารางเอกสาร

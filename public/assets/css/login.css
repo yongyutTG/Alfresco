@@ -49,6 +49,14 @@
       box-shadow: 0 10px 22px rgba(31, 88, 127, 0.25);
     }
 
+    .brand-logo {
+      display: block;
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 10px;
+      object-fit: contain;
+    }
+
     h1 {
       margin: 0;
       font-size: 24px;
