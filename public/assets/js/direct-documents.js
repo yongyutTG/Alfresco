@@ -59,6 +59,16 @@
     const lastBtn = document.getElementById('lastBtn');
     const clearBtn = document.getElementById('clearBtn');
     const reloadFoldersBtn = document.getElementById('reloadFoldersBtn');
+    const createFolderBtn = document.getElementById('createFolderBtn');
+    const createFolderModal = document.getElementById('createFolderModal');
+    const createFolderForm = document.getElementById('createFolderForm');
+    const createFolderParent = document.getElementById('createFolderParent');
+    const createFolderName = document.getElementById('createFolderName');
+    const createFolderError = document.getElementById('createFolderError');
+    const createFolderSaveBtn = document.getElementById('createFolderSaveBtn');
+    const createFolderCancelBtn = document.getElementById('createFolderCancelBtn');
+    let createFolderTarget = null;
+    let createFolderBusy = false;
     const collapseFoldersBtn = document.getElementById('collapseFoldersBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userName = document.getElementById('userName');
@@ -121,6 +131,40 @@
 
     function apiUrl(path) {
         return `${config.apiBaseUrl}${path}`;
+    }
+
+    function notifySuccess(text) {
+        if (window.toastr) {
+            window.toastr.options = {
+                ...window.toastr.options,
+                closeButton: true,
+                progressBar: true,
+                timeOut: 4000,
+                extendedTimeOut: 1200,
+                positionClass: 'toast-top-right',
+            };
+            window.toastr.success(text);
+            return;
+        }
+
+        setMessage(text);
+    }
+
+    function notifyError(text) {
+        if (window.toastr) {
+            window.toastr.options = {
+                ...window.toastr.options,
+                closeButton: true,
+                progressBar: true,
+                timeOut: 6000,
+                extendedTimeOut: 1500,
+                positionClass: 'toast-top-right',
+            };
+            window.toastr.error(text);
+            return;
+        }
+
+        setMessage(text, true);
     }
 
     function initResizableSidebar() {
@@ -318,6 +362,8 @@
         state.folderPath = path;
         state.folderLabel = label || path;
         state.isHomeSelected = isHome;
+        createFolderBtn.disabled = isHome || !path || createFolderBusy;
+        createFolderBtn.title = isHome || !path ? 'เลือกโฟลเดอร์ปลายทางก่อนสร้าง' : `สร้างโฟลเดอร์ภายใต้: ${path}`;
         folderPathInput.value = path;
         selectedFolder.textContent = isHome ? 'เลือกโฟลเดอร์เอกสาร' : state.folderLabel;
         if (persist) {
@@ -475,6 +521,94 @@
 
         return data;
     }
+
+    function setCreateFolderBusy(busy) {
+        createFolderBusy = busy;
+        createFolderName.disabled = busy;
+        createFolderSaveBtn.disabled = busy;
+        createFolderCancelBtn.disabled = busy;
+        createFolderBtn.disabled = busy || state.isHomeSelected || !state.folderPath;
+        createFolderForm.setAttribute('aria-busy', String(busy));
+        createFolderSaveBtn.textContent = busy ? 'กำลังสร้าง...' : 'สร้างโฟลเดอร์';
+    }
+
+    function closeCreateFolder() {
+        if (createFolderBusy) return;
+        createFolderModal.hidden = true;
+        createFolderTarget = null;
+        createFolderBtn.focus();
+    }
+
+    createFolderBtn.addEventListener('click', () => {
+        if (state.isHomeSelected || !state.folderPath || createFolderBusy) return;
+        // Capture the displayed destination; never substitute the root at submission time.
+        createFolderTarget = state.folderPath;
+        createFolderParent.textContent = `สร้างภายใต้: ${createFolderTarget}`;
+        createFolderForm.reset();
+        createFolderError.hidden = true;
+        createFolderModal.hidden = false;
+        createFolderName.focus();
+    });
+
+    createFolderCancelBtn.addEventListener('click', closeCreateFolder);
+    createFolderModal.addEventListener('click', (event) => {
+        if (event.target === createFolderModal) closeCreateFolder();
+    });
+    createFolderModal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeCreateFolder();
+        }
+        if (event.key === 'Tab') {
+            const controls = [createFolderName, createFolderSaveBtn, createFolderCancelBtn].filter((el) => !el.disabled);
+            const first = controls[0];
+            const last = controls[controls.length - 1];
+            if (!first || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+                event.preventDefault();
+                (event.shiftKey ? last : first)?.focus();
+            }
+        }
+    });
+
+    createFolderForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!createFolderTarget || createFolderBusy || sessionExpired) return;
+        const parentPath = createFolderTarget;
+        const name = createFolderName.value.trim();
+        createFolderError.hidden = true;
+        if (!name || name === '.' || name === '..' || /[\\/\x00-\x1f]/.test(name)) {
+            createFolderError.textContent = 'กรุณากรอกชื่อโฟลเดอร์ที่ไม่ใช่ . หรือ .. และไม่มี / หรือ \\ หรืออักขระควบคุม';
+            createFolderError.hidden = false;
+            createFolderName.focus();
+            return;
+        }
+        setCreateFolderBusy(true);
+        try {
+            await requestJson('/user-api/alfresco/folders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ parentPath, name }),
+            });
+        } catch (error) {
+            createFolderError.textContent = error.status === 403 ? 'คุณไม่มีสิทธิ์สร้างโฟลเดอร์ในตำแหน่งนี้'
+                : error.status === 409 ? 'มีโฟลเดอร์ชื่อนี้อยู่แล้ว กรุณาใช้ชื่ออื่น'
+                : (error.message || 'สร้างโฟลเดอร์ไม่สำเร็จ');
+            createFolderError.hidden = false;
+            setCreateFolderBusy(false);
+            createFolderName.focus();
+            return;
+        }
+        setCreateFolderBusy(false);
+        closeCreateFolder();
+        notifySuccess('สร้างโฟลเดอร์เรียบร้อยแล้ว');
+        try {
+            await loadFolders();
+            revealFolderPath(parentPath);
+            revealFolderChildren(parentPath);
+        } catch (error) {
+            setMessage('สร้างโฟลเดอร์สำเร็จแล้ว แต่โหลดรายการใหม่ไม่สำเร็จ กรุณากดโหลดรายการโฟลเดอร์ใหม่', true);
+        }
+    });
 
     async function patchJson(path, body) {
         return requestJson(path, {
@@ -2110,10 +2244,12 @@ ${deleteAction}
                 const didRename = await renameFile(activeRename.id, activeRename.currentName, nextName);
 
                 if (didRename) {
+                    notifySuccess('แก้ไขชื่อไฟล์เรียบร้อยแล้ว');
                     hideRenameModal();
                 }
             } catch (error) {
-                setMessage(error.message, true);
+                const errorMessage = error.message || 'แก้ไขชื่อไฟล์ไม่สำเร็จ';
+                notifyError(errorMessage);
             } finally {
                 setRenameModalBusy(false);
             }
@@ -2150,10 +2286,15 @@ ${deleteAction}
                 );
 
                 if (didUpdate) {
+                    notifySuccess('อัปเดตไฟล์เรียบร้อยแล้ว');
                     hideUpdateModal();
                 }
             } catch (error) {
-                setMessage(error.message, true);
+                const errorMessage = error?.message === 'Failed to fetch'
+                    ? 'อัปเดตไฟล์ไม่สำเร็จ: ไม่สามารถเชื่อมต่อ API ได้ กรุณาตรวจสอบว่า UserAlfresco-api เปิดอยู่และ CORS อนุญาต method PUT'
+                    : (error.message || 'อัปเดตไฟล์ไม่สำเร็จ');
+
+                notifyError(errorMessage);
             } finally {
                 setUpdateModalBusy(false);
             }
@@ -2184,10 +2325,12 @@ ${deleteAction}
                 const didDelete = await deleteFile(activeDelete.id, activeDelete.currentName);
 
                 if (didDelete) {
+                    notifySuccess('ลบไฟล์เรียบร้อยแล้ว');
                     hideDeleteModal();
                 }
             } catch (error) {
-                setMessage(error.message, true);
+                const errorMessage = error.message || 'ลบไฟล์ไม่สำเร็จ';
+                notifyError(errorMessage);
             } finally {
                 setDeleteModalBusy(false);
             }

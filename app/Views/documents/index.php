@@ -8,6 +8,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
 <body>
     <div id="sessionTimeoutModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="sessionTimeoutTitle" hidden>
@@ -31,6 +32,23 @@
                 <button id="logoutCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
             </div>
         </div>
+    </div>
+
+    <div id="createFolderModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="createFolderTitle" aria-describedby="createFolderParent" hidden>
+        <form id="createFolderForm" class="session-dialog rename-dialog">
+            <div class="rename-icon" aria-hidden="true"><i class="fa-solid fa-folder-plus"></i></div>
+            <h2 id="createFolderTitle">สร้างโฟลเดอร์</h2>
+            <p id="createFolderParent" class="rename-current-name"></p>
+            <label class="rename-field">
+                <span>ชื่อโฟลเดอร์</span>
+                <input id="createFolderName" type="text" autocomplete="off" required>
+            </label>
+            <p id="createFolderError" role="alert" hidden></p>
+            <div class="session-actions split-actions">
+                <button id="createFolderSaveBtn" type="submit">สร้างโฟลเดอร์</button>
+                <button id="createFolderCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
+            </div>
+        </form>
     </div>
 
     <div id="renameFileModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="renameFileTitle" hidden>
@@ -62,7 +80,7 @@
             <div class="update-file-icon" aria-hidden="true">
                 <i class="fa-solid fa-file-arrow-up"></i>
             </div>
-            <h2 id="updateFileTitle">Update ไฟล์</h2>
+            <h2 id="updateFileTitle">อัปเดตไฟล์</h2>
             <p id="updateFileCurrentName" class="rename-current-name">-</p>
             <label class="rename-field">
                 <span>เลือกไฟล์ใหม่</span>
@@ -71,7 +89,7 @@
             <div class="session-actions split-actions">
                 <button id="updateFileSaveBtn" type="submit">
                     <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
-                    <span>Update</span>
+                    <span>อัปเดต</span>
                 </button>
                 <button id="updateFileCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
             </div>
@@ -178,10 +196,16 @@
                     <h1 id="selectedFolder">เลือกโฟลเดอร์เอกสาร</h1>
                     <div id="folderResultBadge" class="folder-result-badge" hidden></div>
                 </div>
+                <div class="folder-toolbar-actions">
+                    <button id="createFolderBtn" type="button" disabled title="เลือกโฟลเดอร์ปลายทางก่อนสร้าง">
+                        <i class="fa-solid fa-folder-plus" aria-hidden="true"></i>
+                        <span>สร้างโฟลเดอร์</span>
+                    </button>
                 <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการ folder ใหม่">
                     <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                     <span class="sr-only">โหลดรายการ folder ใหม่</span>
                 </button>
+                </div>
             </div>
 
             <form id="searchForm" class="search-panel">
@@ -294,6 +318,8 @@
             idleTimeoutSeconds: <?= json_encode($idleTimeoutSeconds) ?>
         };
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
     <script src="<?= base_url('assets/js/direct-documents.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-documents.js') ?>"></script>
 </body>
 </html>

@@ -94,6 +94,30 @@ sidebar default width: 300px
 sidebar max width: 360px
 ```
 
+Toast และ message:
+
+```text
+toastr ใช้แจ้งผล action ชั่วคราว เช่น แก้ไขชื่อไฟล์ อัปเดตไฟล์ และลบไฟล์
+success toast แสดง 4 วินาที
+error toast แสดง 6 วินาที
+message bar ใช้สำหรับสถานะหลักของหน้า เช่น กำลังโหลด, กรุณาเลือก folder, ไม่พบข้อมูล
+```
+
+ขนาด modal ฝั่ง documents:
+
+```text
+modal แก้ไขชื่อไฟล์ / อัปเดตไฟล์ / ลบไฟล์
+-> title 18px
+-> icon 40x40px
+-> body, label, input, button 13px
+
+modal รายละเอียดไฟล์
+-> title 18px
+-> icon 40x40px
+-> tab และข้อมูลหลัก 13px
+-> metadata รองในประวัติเวอร์ชัน 12px
+```
+
 หน้า documents แยกการทำงานเป็น 2 แบบ:
 
 ```text
@@ -165,6 +189,8 @@ modal รายละเอียดไฟล์แบ่งเป็น 2 แ�
 -> แสดงเวอร์ชัน วันที่แก้ไข ผู้แก้ไข ขนาด comment และปุ่มเปิด/ดาวน์โหลดเวอร์ชันนั้น
 ```
 
+modal รายละเอียดไฟล์ใช้ font scale เดียวกับ modal อัปเดตไฟล์ เพื่อให้สอดคล้องกับหน้า documents โดย tab และข้อมูลหลักอยู่ที่ `13px`
+
 สิทธิ์แก้ไขแสดงทางคอลัมน์ `จัดการ` เท่านั้น ถ้า API ส่ง `allowRename: true` จะแสดงไอคอนดินสอ ถ้าไม่มีสิทธิ์จะไม่แสดงไอคอนนี้
 
 การค้นหาชื่อไฟล์แบบแม่นใช้ endpoint แยก `/documents/search` พร้อม `exactName` หรือ `fileName`:
@@ -229,6 +255,8 @@ Update ไฟล์
 -> เรียก DELETE /user-api/alfresco/documents?id=DOCUMENT_ID
 -> หลังสำเร็จจะ reload รายการเอกสารใน folder เดิม
 ```
+
+ผลลัพธ์ของ action `แก้ไขชื่อไฟล์`, `อัปเดตไฟล์` และ `ลบไฟล์` แจ้งด้วย toastr เท่านั้น ไม่เปลี่ยน message bar เพื่อไม่ให้สถานะหลักของหน้า documents ถูกแทนด้วยข้อความชั่วคราว
 
 ปุ่ม `Update` และ `ลบ` แสดงในคอลัมน์ `จัดการ` ตามสิทธิ์ที่ API ส่งกลับมา เช่น `allowUpdate`, `allowDelete`, `canUpdate`, `canDelete` หรือ fallback จาก `allowRename` ใน UI ทดลองปัจจุบัน แต่ backend ยังต้องตรวจสิทธิ์จริงจาก Alfresco เสมอ
 

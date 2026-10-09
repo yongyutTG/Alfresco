@@ -32,6 +32,7 @@
     </section>
 
     <div class="footer-link">
+      <div class="app-version">V <?= esc($appVersion) ?></div>
       <!-- v<?= esc($appVersion) ?> -->
     </div>
   </main>

@@ -326,6 +326,30 @@ sidebar:
 ไม่มีปุ่มย่อ/ขยายเมนู
 ```
 
+toast/message:
+
+```text
+toastr ใช้แจ้งผล action ชั่วคราว
+success toast: timeOut 4000ms
+error toast: timeOut 6000ms
+message bar ใช้เฉพาะสถานะหลักของหน้า เช่น กำลังโหลด, กรุณาเลือก folder, ไม่พบข้อมูล
+```
+
+modal scale:
+
+```text
+modal แก้ไขชื่อไฟล์ / อัปเดตไฟล์ / ลบไฟล์
+ -> title 18px
+ -> icon 40x40px
+ -> body, label, input, button 13px
+
+modal รายละเอียดไฟล์
+ -> title 18px
+ -> icon 40x40px
+ -> tab และข้อมูลหลัก 13px
+ -> metadata รองในประวัติเวอร์ชัน 12px
+```
+
 ## 6. โหลด Folder ตามสิทธิ์
 
 ไฟล์:
@@ -634,6 +658,17 @@ GET http://localhost:3001/user-api/alfresco/documents/:id/versions
 
 รายการเวอร์ชันอยู่ในแท็บของตัวเองและ scroll ภายใน modal เพื่อไม่ให้ modal ล้นจอ
 
+ขนาดตัวอักษร modal รายละเอียดไฟล์ใช้ scale เดียวกับ modal อัปเดตไฟล์:
+
+```text
+title 18px
+icon 40x40px
+tab 13px
+ข้อมูลไฟล์ 13px
+version label 13px
+version metadata/comment 12px
+```
+
 ## 10. แก้ไขชื่อไฟล์
 
 ไฟล์:
@@ -688,9 +723,11 @@ PATCH rename สำเร็จ
  -> state.page = 1
  -> loadDocuments({ allowList: true, refresh: true })
  -> โหลดรายการของ folder ปัจจุบันใหม่
+ -> แจ้งผลสำเร็จด้วย toastr.success()
  -> ปิด modal แก้ไขชื่อไฟล์
- -> แสดงข้อความสำเร็จ
 ```
+
+ถ้าแก้ไขชื่อไฟล์ไม่สำเร็จ จะแจ้งด้วย `toastr.error()` และไม่เปลี่ยน message bar ของหน้า documents
 
 `refresh: true` จะเพิ่ม query `_=<timestamp>` ตอนเรียก list documents เพื่อช่วยกัน response เก่าค้างจาก cache/proxy:
 
@@ -718,6 +755,7 @@ Update ไฟล์:
  -> backend แทนที่ content ของเอกสารเดิมใน Alfresco
  -> ชื่อเอกสารเดิมไม่เปลี่ยน
  -> โหลดรายการเอกสารใน folder ปัจจุบันใหม่
+ -> แจ้งผลสำเร็จด้วย toastr.success()
 ```
 
 API ที่เรียก:
@@ -735,7 +773,10 @@ Content-Type: application/pdf
  -> กดลบไฟล์
  -> เรียก DELETE
  -> โหลดรายการเอกสารใน folder ปัจจุบันใหม่
+ -> แจ้งผลสำเร็จด้วย toastr.success()
 ```
+
+ถ้าอัปเดตไฟล์หรือลบไฟล์ไม่สำเร็จ จะแจ้งด้วย `toastr.error()` และไม่เปลี่ยน message bar ของหน้า documents
 
 API ที่เรียก:
 

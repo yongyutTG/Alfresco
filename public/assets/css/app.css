@@ -330,6 +330,42 @@ button:disabled {
     color: var(--primary);
 }
 
+.logout-dialog {
+    width: min(400px, 100%);
+    padding: 22px 24px 20px;
+}
+
+.logout-dialog .logout-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+    font-size: 18px;
+}
+
+.logout-dialog h2 {
+    margin-bottom: 6px;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.logout-dialog p {
+    max-width: 320px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.logout-dialog .session-actions {
+    gap: 8px;
+}
+
+.logout-dialog .session-actions button {
+    min-width: 108px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+}
+
 .rename-dialog,
 .update-file-dialog,
 .delete-file-dialog,
@@ -341,11 +377,21 @@ button:disabled {
     width: min(680px, 100%);
 }
 
+.file-info-dialog {
+    padding: 24px 26px 22px;
+}
+
 .rename-dialog h2,
 .update-file-dialog h2,
 .file-info-dialog h2 {
     color: var(--primary);
     text-align: center;
+}
+
+.file-info-dialog h2 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    line-height: 1.25;
 }
 
 .delete-file-dialog h2 {
@@ -369,10 +415,85 @@ button:disabled {
     font-size: 24px;
 }
 
+.file-info-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+    font-size: 18px;
+}
+
 .delete-file-icon {
     border-color: #ffc7c7;
     color: var(--danger);
     background: var(--danger-bg);
+}
+
+.rename-dialog,
+.update-file-dialog,
+.delete-file-dialog {
+    width: min(400px, 100%);
+    padding: 22px 24px 20px;
+}
+
+.rename-dialog h2,
+.update-file-dialog h2,
+.delete-file-dialog h2 {
+    margin-bottom: 6px;
+    font-size: 18px;
+    line-height: 1.25;
+}
+
+.rename-dialog .rename-icon,
+.update-file-dialog .update-file-icon,
+.delete-file-dialog .delete-file-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 12px;
+    font-size: 18px;
+}
+
+.rename-dialog p,
+.update-file-dialog p,
+.delete-file-dialog p {
+    max-width: 320px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.rename-dialog .rename-current-name,
+.update-file-dialog .rename-current-name,
+.delete-file-dialog .rename-current-name {
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.rename-dialog .rename-field,
+.update-file-dialog .rename-field {
+    gap: 6px;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.rename-dialog .rename-field input,
+.update-file-dialog .rename-field input {
+    min-height: 36px;
+    font-size: 13px;
+}
+
+.rename-dialog .session-actions,
+.update-file-dialog .session-actions,
+.delete-file-dialog .session-actions {
+    gap: 8px;
+}
+
+.rename-dialog .session-actions button,
+.update-file-dialog .session-actions button,
+.delete-file-dialog .session-actions button {
+    min-width: 108px;
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
 }
 
 .session-dialog p {
@@ -451,15 +572,15 @@ button:disabled {
 
 .file-info-list {
     display: grid;
-    gap: 8px;
-    margin: 0 0 22px;
+    gap: 6px;
+    margin: 0 0 18px;
 }
 
 .file-info-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-    margin: 0 0 14px;
+    margin: 0 0 12px;
     border: 1px solid #dbe5f1;
     border-radius: 8px;
     padding: 4px;
@@ -467,8 +588,8 @@ button:disabled {
 }
 
 .file-info-tab {
-    min-height: 36px;
-    gap: 7px;
+    min-height: 34px;
+    gap: 6px;
     border-radius: 6px;
     padding: 0 10px;
     color: #526684;
@@ -490,7 +611,7 @@ button:disabled {
 }
 
 .file-info-panel {
-    max-height: min(52vh, 430px);
+    max-height: min(52vh, 400px);
     overflow: auto;
     padding-right: 2px;
 }
@@ -502,9 +623,9 @@ button:disabled {
 .file-info-list div {
     display: grid;
     grid-template-columns: 132px minmax(0, 1fr);
-    gap: 12px;
+    gap: 10px;
     align-items: start;
-    padding: 9px 0;
+    padding: 7px 0;
     border-bottom: 1px solid #edf1f6;
 }
 
@@ -523,13 +644,13 @@ button:disabled {
 }
 
 .file-version-section {
-    margin: 0 0 22px;
+    margin: 0 0 18px;
 }
 
 .file-version-section h3 {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     color: #17315c;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 500;
 }
 
@@ -544,7 +665,7 @@ button:disabled {
     gap: 8px;
     border: 1px solid #edf1f6;
     border-radius: 7px;
-    padding: 10px 12px;
+    padding: 9px 10px;
     color: #60718f;
     background: #f8fbff;
     font-size: 13px;
@@ -559,11 +680,11 @@ button:disabled {
 .file-version-item {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
     border: 1px solid #edf1f6;
     border-radius: 7px;
-    padding: 10px 12px;
+    padding: 9px 10px;
     background: #fff;
 }
 
@@ -590,7 +711,7 @@ button:disabled {
     padding: 2px 8px;
     color: var(--primary);
     background: var(--primary-soft);
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .file-version-meta {
@@ -1033,6 +1154,18 @@ table {
     table-layout: fixed;
     border-collapse: collapse;
     min-width: 980px;
+}
+
+.folder-toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+#createFolderError {
+    color: #b42318;
+    overflow-wrap: anywhere;
 }
 
 .col-file-name {

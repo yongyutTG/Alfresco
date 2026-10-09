@@ -167,7 +167,12 @@
     .footer-link {
       margin-top: 14px;
       text-align: center;
-      font-size: 13px;
+    }
+
+    .app-version {
+      color: #b8c1cf;
+      font-size: 11px;
+      line-height: 1.2;
     }
 
     a { color: var(--blue-dark); text-decoration: none; }
