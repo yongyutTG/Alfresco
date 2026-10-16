@@ -61,10 +61,11 @@ function harness(request) {
     vm.runInNewContext(fs.readFileSync(require.resolve('../../public/assets/js/direct-bulk.js'), 'utf8'), context);
     const requests = [];
     const refreshes = [];
+    const downloads = [];
     const api = context.window.AlfrescoBulk.init({ rootPath: '/root', requestJson: async (path, options) => {
         requests.push({ path, body: JSON.parse(options.body), method: options.method });
         return request ? request() : { results: [{ id: '1', ok: true, moved: true }] };
-    }, refresh: async (result) => refreshes.push(result) });
+    }, refresh: async (result) => refreshes.push(result), download: async (items) => downloads.push(items) });
     const get = (name) => document.getElementById(`bulk${name}`);
     api.setContext('/root/source', '');
     api.setFolders([{ id: 'f', name: 'source', path: '/root/source', parentPath: '/root' }, { id: 't', name: 'target', path: '/root/target', parentPath: '/root' }]);
@@ -73,7 +74,7 @@ function harness(request) {
         get('SelectPage').checked = true;
         get('SelectPage').emit('change');
     }
-    return { api, get, select, requests, refreshes, document };
+    return { api, get, select, requests, refreshes, downloads, document };
 }
 
 test('selected document actions appear in the selection toolbar', () => {
@@ -82,6 +83,23 @@ test('selected document actions appear in the selection toolbar', () => {
     assert.equal(h.get('DocumentCount').textContent, 'เลือกแล้ว 2 ไฟล์');
     h.get('ClearDocuments').emit('click');
     assert.equal(h.get('DocumentActions').hidden, true);
+});
+
+test('selected documents are passed to the bulk download handler', async () => {
+    const h = harness();
+    h.select([{ id: '1', name: 'one.pdf', permissions: { canDownload: true } }, { id: '2', name: 'two.pdf', permissions: { canDownload: true } }]);
+    await h.get('DownloadDocuments').emit('click');
+    assert.equal(JSON.stringify(h.downloads[0].map(({ id, name }) => ({ id, name }))), JSON.stringify([
+        { id: '1', name: 'one.pdf' },
+        { id: '2', name: 'two.pdf' },
+    ]));
+    assert.equal(h.get('DownloadDocuments').disabled, false);
+});
+
+test('bulk download is disabled when a selected document denies download permission', () => {
+    const h = harness();
+    h.select([{ id: '1', name: 'protected.pdf', permissions: { canDownload: false } }]);
+    assert.equal(h.get('DownloadDocuments').disabled, true);
 });
 
 test('selection controls stay hidden when every document is denied move and delete', () => {

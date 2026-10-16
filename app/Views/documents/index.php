@@ -218,7 +218,7 @@
                     <strong id="bulkDocumentCount" aria-live="polite">เลือกแล้ว 0 ไฟล์</strong>
                 </div>
                 <div class="bulk-selection-commands">
-                    <button id="bulkDownloadDocumentsPlaceholder" type="button" class="secondary-btn" disabled title="เตรียมไว้สำหรับดาวน์โหลดหลายไฟล์">
+                    <button id="bulkDownloadDocuments" type="button" class="secondary-btn" title="ดาวน์โหลดไฟล์ที่เลือก">
                         <i class="fa-solid fa-download" aria-hidden="true"></i><span>ดาวน์โหลด</span>
                     </button>
                     <button id="bulkMoveDocuments" type="button" class="secondary-btn"><i class="fa-solid fa-folder-arrow-up" aria-hidden="true"></i><span>ย้ายไปโฟลเดอร์</span></button>

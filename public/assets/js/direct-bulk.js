@@ -28,7 +28,8 @@
     function canSelectDocument(item) {
         const moveDenied = item?.allowMove === false || item?.canMove === false || item?.permissions?.canMove === false;
         const deleteDenied = item?.allowDelete === false || item?.canDelete === false || item?.permissions?.canDelete === false;
-        return !moveDenied || !deleteDenied;
+        const downloadAllowed = item?.allowDownload === true || item?.canDownload === true || item?.permissions?.canDownload === true;
+        return !moveDenied || !deleteDenied || downloadAllowed;
     }
 
     function resultItems(items, payload, operation) {
@@ -41,9 +42,9 @@
         });
     }
 
-    function init({ rootPath, requestJson, refresh }) {
+    function init({ rootPath, requestJson, refresh, download }) {
         const get = (id) => document.getElementById(id);
-        const ui = Object.fromEntries(['Modal', 'Form', 'Title', 'Description', 'Items', 'Destination', 'FolderSearch', 'Target', 'TargetPath', 'DeleteIcon', 'DeleteWarning', 'SelectedTitle', 'Status', 'Results', 'Confirm', 'Cancel', 'FolderMode', 'FolderPanel', 'FolderChoices', 'FolderCount', 'MoveFolders', 'ClearFolders', 'DocumentActions', 'DocumentCount', 'MoveDocuments', 'DeleteDocuments', 'ClearDocuments', 'SelectPage'].map((key) => [key, get(`bulk${key}`)]));
+        const ui = Object.fromEntries(['Modal', 'Form', 'Title', 'Description', 'Items', 'Destination', 'FolderSearch', 'Target', 'TargetPath', 'DeleteIcon', 'DeleteWarning', 'SelectedTitle', 'Status', 'Results', 'Confirm', 'Cancel', 'FolderMode', 'FolderPanel', 'FolderChoices', 'FolderCount', 'MoveFolders', 'ClearFolders', 'DocumentActions', 'DocumentCount', 'DownloadDocuments', 'MoveDocuments', 'DeleteDocuments', 'ClearDocuments', 'SelectPage'].map((key) => [key, get(`bulk${key}`)]));
         const documents = new Map();
         const folders = new Map();
         let catalog = [];
@@ -61,6 +62,8 @@
             ui.DocumentCount.textContent = `เลือกแล้ว ${documents.size} ไฟล์`;
             ui.FolderCount.textContent = `เลือก ${folders.size} โฟลเดอร์`;
             ui.MoveFolders.disabled = !folders.size || busy;
+            ui.DownloadDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.allowDownload !== true && item.canDownload !== true && item.permissions?.canDownload !== true);
+            ui.DownloadDocuments.title = ui.DownloadDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ดาวน์โหลด' : 'ดาวน์โหลดไฟล์ที่เลือก';
             ui.DeleteDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.permissions?.canDelete === false || item.allowDelete === false);
             ui.DeleteDocuments.title = ui.DeleteDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ลบ' : 'ลบไฟล์ที่เลือก';
             ui.MoveDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.allowMove === false || item.permissions?.canMove === false);
@@ -257,6 +260,22 @@
         ui.ClearFolders.addEventListener('click', () => { folders.clear(); drawFolders(); update(); });
         ui.ClearDocuments.addEventListener('click', () => { documents.clear(); update(); });
         ui.MoveFolders.addEventListener('click', () => open('folders', 'move'));
+        ui.DownloadDocuments.addEventListener('click', async () => {
+            if (busy || ui.DownloadDocuments.disabled || typeof download !== 'function') return;
+            const items = [...documents.values()].map((item) => ({ ...item }));
+            if (!items.length) return;
+            busy = true;
+            ui.DownloadDocuments.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลังเตรียมไฟล์...</span>';
+            update();
+            try {
+                await download(items);
+            } finally {
+                busy = false;
+                ui.DownloadDocuments.innerHTML = '<i class="fa-solid fa-download" aria-hidden="true"></i><span>ดาวน์โหลด</span>';
+                update();
+                ui.DownloadDocuments.focus();
+            }
+        });
         ui.MoveDocuments.addEventListener('click', () => open('documents', 'move'));
         ui.DeleteDocuments.addEventListener('click', () => open('documents', 'delete'));
         ui.FolderSearch.addEventListener('input', drawTargets);

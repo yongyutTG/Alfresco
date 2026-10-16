@@ -117,6 +117,7 @@
     const bulk = window.AlfrescoBulk.init({
         rootPath: config.rootPath,
         requestJson,
+        download: downloadSelectedFiles,
         refresh: async ({ kind, succeeded }) => {
             if (kind === 'folders') {
                 if (succeeded.length) {
@@ -1502,7 +1503,7 @@ ${deleteAction}
                             <button type="button" class="open-file-btn icon-action-btn" data-id="${id}" data-name="${openName}" aria-label="เปิดไฟล์" title="เปิดไฟล์">
                                 <i class="fa-solid fa-eye" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดาวน์โหลดไฟล์" title="ดาวน์โหลดไฟล์">
+                            <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${openName}" aria-label="ดาวน์โหลดไฟล์" title="ดาวน์โหลดไฟล์"${item.permissions?.canDownload === true ? '' : ' disabled'}>
                                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                             </button>
 ${renameAction}
@@ -1681,6 +1682,72 @@ ${moreActions}
         URL.revokeObjectURL(objectUrl);
     }
 
+    function downloadBlob(blob, filename) {
+        const objectUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = objectUrl;
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        downloadLink.remove();
+        URL.revokeObjectURL(objectUrl);
+    }
+
+    function responseFilename(response, fallback) {
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8Match) {
+            try {
+                return decodeURIComponent(utf8Match[1].replace(/^"|"$/g, ''));
+            } catch (error) {
+                return fallback;
+            }
+        }
+        const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+        return filenameMatch?.[1] || fallback;
+    }
+
+    async function downloadSelectedFiles(items) {
+        try {
+            if (items.length === 1) {
+                await downloadFile(items[0].id, items[0].name);
+                notifySuccess('ดาวน์โหลดไฟล์เรียบร้อยแล้ว');
+                return;
+            }
+
+            if (hasIdleExpired()) {
+                expireSession();
+                throw new Error('Session หมดอายุ กรุณา login ใหม่');
+            }
+
+            const response = await fetch(apiUrl('/user-api/alfresco/documents/bulk-download'), {
+                method: 'POST',
+                headers: authHeaders({
+                    Accept: 'application/zip',
+                    'Content-Type': 'application/json',
+                }),
+                body: JSON.stringify({
+                    documents: items.map(({ id, name }) => ({ id, name })),
+                }),
+            });
+
+            if (response.status === 401) {
+                forceLogoutByApi();
+                throw new Error('Session หมดอายุ กรุณา login ใหม่');
+            }
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.message || `ดาวน์โหลดไฟล์ไม่สำเร็จ: HTTP ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            downloadBlob(blob, responseFilename(response, `documents_${Date.now()}.zip`));
+            notifySuccess(`ดาวน์โหลดไฟล์ ${items.length} รายการเรียบร้อยแล้ว`);
+        } catch (error) {
+            notifyError(error.message || 'ดาวน์โหลดไฟล์ที่เลือกไม่สำเร็จ');
+        }
+    }
+
     async function showFileInfoModal(button) {
         if (!fileInfoModal || !fileInfoList) {
             setMessage('ไม่พบ modal รายละเอียดไฟล์', true);
@@ -1820,7 +1887,7 @@ ${moreActions}
                         <button type="button" class="open-file-btn icon-action-btn" data-id="${id}" data-name="${name}" title="เปิดเวอร์ชันนี้" aria-label="เปิดเวอร์ชัน ${versionLabel}"${disabledAttr}>
                             <i class="fa-solid fa-eye" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${name}" title="ดาวน์โหลดเวอร์ชันนี้" aria-label="ดาวน์โหลดเวอร์ชัน ${versionLabel}"${disabledAttr}>
+                        <button type="button" class="download-file-btn icon-action-btn download-action-btn" data-id="${id}" data-name="${name}" title="ดาวน์โหลดเวอร์ชันนี้" aria-label="ดาวน์โหลดเวอร์ชัน ${versionLabel}"${id && version.permissions?.canDownload === true ? '' : ' disabled'}>
                             <i class="fa-solid fa-download" aria-hidden="true"></i>
                         </button>
                     </div>
