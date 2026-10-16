@@ -11,28 +11,42 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
 </head>
 <body>
-    <div id="sessionTimeoutModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="sessionTimeoutTitle" hidden>
-        <div class="session-dialog">
-            <div class="session-icon" aria-hidden="true">!</div>
-            <h2 id="sessionTimeoutTitle">Session หมดอายุ</h2>
-            <p id="sessionTimeoutMessage">Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่</p>
-            <div class="session-actions">
-                <button id="sessionTimeoutOkBtn" type="button">ตกลง</button>
+    <div id="bulkModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="bulkTitle" hidden>
+        <form id="bulkForm" class="session-dialog bulk-dialog">
+            <div id="bulkDeleteIcon" class="bulk-delete-icon" aria-hidden="true" hidden>
+                <i class="fa-regular fa-trash-can"></i>
             </div>
-        </div>
-    </div>
-
-    <div id="logoutConfirmModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle" hidden>
-        <div class="session-dialog logout-dialog">
-            <div class="logout-icon" aria-hidden="true">?</div>
-            <h2 id="logoutConfirmTitle">ยืนยันการออกจากระบบ</h2>
-            <p>คุณต้องการออกจากระบบหรือไม่ ?</p>
+            <h2 id="bulkTitle">จัดการหลายรายการ</h2>
+            <p id="bulkDescription"></p>
+            <div class="bulk-layout">
+                <section class="bulk-panel bulk-selected-panel" aria-labelledby="bulkSelectedTitle">
+                    <h3 id="bulkSelectedTitle"><i class="fa-regular fa-file-lines" aria-hidden="true"></i> รายการที่เลือก</h3>
+                    <ul id="bulkItems" class="bulk-items"></ul>
+                </section>
+                <section id="bulkDestination" class="bulk-panel bulk-destination-panel" aria-labelledby="bulkDestinationTitle">
+                    <h3 id="bulkDestinationTitle"><i class="fa-solid fa-folder-tree" aria-hidden="true"></i> โฟลเดอร์ปลายทาง</h3>
+                    <label class="rename-field">ค้นหาโฟลเดอร์ปลายทาง
+                        <input id="bulkFolderSearch" type="search" autocomplete="off" placeholder="ค้นหาชื่อหรือเส้นทางโฟลเดอร์">
+                    </label>
+                    <label class="rename-field">เลือกโฟลเดอร์ปลายทาง
+                        <select id="bulkTarget" size="7"></select>
+                    </label>
+                </section>
+            </div>
+            <p id="bulkTargetPath" class="rename-current-name bulk-target-summary"></p>
+            <p id="bulkDeleteWarning" class="bulk-delete-warning" hidden>
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                <span>การลบไฟล์ไม่สามารถย้อนกลับได้</span>
+            </p>
+            <p id="bulkStatus" role="status" aria-live="polite"></p>
+            <ul id="bulkResults" class="bulk-items" aria-label="ผลการดำเนินการ" hidden></ul>
             <div class="session-actions split-actions">
-                <button id="logoutConfirmBtn" type="button" class="danger-btn">ออกจากระบบ</button>
-                <button id="logoutCancelBtn" type="button" class="secondary-btn">ยกเลิก</button>
+                <button id="bulkConfirm" type="submit">ยืนยัน</button>
+                <button id="bulkCancel" type="button" class="secondary-btn">ยกเลิก</button>
             </div>
-        </div>
+        </form>
     </div>
+    <?= $this->include('templates/Documents/session_modals') ?>
 
     <div id="createFolderModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="createFolderTitle" aria-describedby="createFolderParent" hidden>
         <form id="createFolderForm" class="session-dialog rename-dialog">
@@ -147,47 +161,10 @@
         </div>
     </div>
 
-    <header class="topbar">
-        <a class="app-title" href="<?= site_url('documents') ?>">
-            <img class="brand-logo small" src="<?= base_url('images/logo_coop.png') ?>" alt="Logo">
-            <span>
-                <strong class="coop-title">สหกรณ์ออมทรัพย์พนักงานบริษัท การบินไทย จำกัด</strong>
-                <small class="coop-subtitle">เป็นสหกรณ์ออมทรัพย์ที่มั่นคง โปร่งใส ก้าวไกลด้วยเทคโนโลยี เอื้ออาทรต่อสมาชิกและสังคม</small>
-            </span>
-        </a>
-
-        <div class="user-box">
-            <span class="user-badge" aria-hidden="true">
-                <i class="fa-solid fa-user" aria-hidden="true"></i>
-            </span>
-            <span class="user-meta">
-                <span class="user-label">ยินดีต้อนรับ</span>
-                <span id="userName" class="user-name">-</span>
-            </span>
-            <button id="logoutBtn" type="button" class="logout-icon-btn" aria-label="ออกจากระบบ" title="ออกจากระบบ">
-                <i class="fa-solid fa-power-off" aria-hidden="true"></i>
-            </button>
-        </div>
-    </header>
+    <?= $this->include('templates/Documents/header') ?>
 
     <main class="app-layout">
-        <aside class="sidebar">
-            <div class="side-section">
-                <div class="section-title">
-                    <!-- <span class="section-icon">F</span> -->
-                    <div>
-                        <!-- <h2>Folder ตามสิทธิ์</h2> -->
-                        <!-- <p>เลือก folder ที่ต้องการดูเอกสาร</p> -->
-                    </div>
-                </div>
-                <div id="folderList" class="folder-list"></div>
-                <div class="sidebar-version">
-                    <strong>Alfresco ci4</strong>
-                    <span>v<?= esc($appVersion) ?></span>
-                </div>
-            </div>
-            <div id="sidebarResizeHandle" class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="ปรับความกว้างแถบ folder" title="ลากเพื่อปรับความกว้าง" tabindex="0"></div>
-        </aside>
+        <?= $this->include('templates/Documents/sidebar') ?>
 
         <section class="content">
             <div class="toolbar">
@@ -201,42 +178,33 @@
                         <i class="fa-solid fa-folder-plus" aria-hidden="true"></i>
                         <span>สร้างโฟลเดอร์</span>
                     </button>
-                <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการ folder ใหม่">
-                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                    <span class="sr-only">โหลดรายการ folder ใหม่</span>
-                </button>
+                    <button id="uploadFilePlaceholderBtn" type="button" class="secondary-btn" disabled title="เตรียมไว้สำหรับฟังก์ชันอัปโหลดไฟล์">
+                        <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+                        <span>อัปโหลดไฟล์</span>
+                    </button>
                 </div>
             </div>
 
             <form id="searchForm" class="search-panel">
                 <input type="hidden" id="folderPath" value="<?= esc($rootPath) ?>">
 
-                <label>
-                    <span class="search-input-wrap">
-                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                        <input id="keyword" type="search" placeholder="ค้นหาชื่อไฟล์ เช่น EVLPS701-0001">
-                    </span>
-                </label>
-
-                <div class="actions">
+                <div class="search-primary-row">
+                    <label class="search-keyword-field">
+                        <span class="search-input-wrap">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input id="keyword" type="search" placeholder="ค้นหาชื่อไฟล์ เช่น EVLPS701-0001 หรือคำค้นอื่นๆ">
+                        </span>
+                    </label>
                     <button type="submit" title="ค้นหาเอกสาร">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         <span>ค้นหา</span>
                     </button>
-                    <button id="clearBtn" type="button" class="secondary-btn" title="ล้างคำค้น">
-                        <i class="fa-solid fa-eraser" aria-hidden="true"></i>
-                        <span>ล้าง</span>
+                    <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการ folder และเอกสารใหม่">
+                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                        <span>รีเฟรช</span>
                     </button>
                 </div>
 
-                <label class="page-size-field">
-                    <!-- <span>จำนวนต่อหน้า</span> -->
-                    <select id="pageSize" title="จำนวนรายการต่อหน้า" aria-label="จำนวนรายการต่อหน้า">
-                        <option value="25" selected>25</option>
-                        <option value="50">50</option>
-                        <option value="100">100</option>
-                    </select>
-                </label>
             </form>
 
             <div class="summary-strip">
@@ -244,6 +212,20 @@
                 <span id="message">เลือก folder เพื่อโหลดเอกสาร</span>
             </div>
 
+            <div id="bulkDocumentActions" class="bulk-actions" hidden>
+                <div class="bulk-selection-summary">
+                    <span class="bulk-selection-check"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+                    <strong id="bulkDocumentCount" aria-live="polite">เลือกแล้ว 0 ไฟล์</strong>
+                </div>
+                <div class="bulk-selection-commands">
+                    <button id="bulkDownloadDocumentsPlaceholder" type="button" class="secondary-btn" disabled title="เตรียมไว้สำหรับดาวน์โหลดหลายไฟล์">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i><span>ดาวน์โหลด</span>
+                    </button>
+                    <button id="bulkMoveDocuments" type="button" class="secondary-btn"><i class="fa-solid fa-folder-arrow-up" aria-hidden="true"></i><span>ย้ายไปโฟลเดอร์</span></button>
+                    <button id="bulkDeleteDocuments" type="button" class="danger-outline-btn"><i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>ลบไฟล์</span></button>
+                    <button id="bulkClearDocuments" type="button" class="secondary-btn"><i class="fa-solid fa-xmark" aria-hidden="true"></i><span>ยกเลิก</span></button>
+                </div>
+            </div>
             <div class="table-wrap">
                 <table>
                     <colgroup>
@@ -256,6 +238,7 @@
                     <thead>
                         <tr>
                             <th>
+                                <input id="bulkSelectPage" class="bulk-checkbox" type="checkbox" aria-label="เลือกไฟล์ทั้งหมดในหน้านี้" title="เลือกไฟล์ทั้งหมดในหน้านี้" disabled>
                                 <button id="sortNameBtn" type="button" class="sort-header" aria-label="เรียงชื่อไฟล์" title="เรียงชื่อไฟล์">
                                     <span>ชื่อไฟล์</span>
                                     <i class="fa-solid fa-arrow-down-a-z" aria-hidden="true"></i>
@@ -306,20 +289,18 @@
                         <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
                     </button>
                 </div>
+                <label class="page-size-field">
+                    <span>รายการต่อหน้า</span>
+                    <select id="pageSize" title="จำนวนรายการต่อหน้า" aria-label="จำนวนรายการต่อหน้า">
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </label>
             </nav>
         </section>
     </main>
 
-    <script {csp-script-nonce}>
-        window.AlfrescoDirect = {
-            apiBaseUrl: <?= json_encode($apiBaseUrl) ?>,
-            rootPath: <?= json_encode($rootPath, JSON_UNESCAPED_UNICODE) ?>,
-            loginUrl: <?= json_encode(site_url('login')) ?>,
-            idleTimeoutSeconds: <?= json_encode($idleTimeoutSeconds) ?>
-        };
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
-    <script src="<?= base_url('assets/js/direct-documents.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-documents.js') ?>"></script>
+    <?= $this->include('templates/Documents/scripts') ?>
 </body>
 </html>

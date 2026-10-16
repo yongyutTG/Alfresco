@@ -33,6 +33,7 @@
         sortField: 'created',
         nameSortDirection: 'asc',
         createdSortDirection: 'desc',
+        canCreateFolder: false,
     };
 
     const appLayout = document.querySelector('.app-layout');
@@ -106,9 +107,28 @@
     let activeRename = null;
     let activeUpdate = null;
     let activeDelete = null;
+    let renameFileBusy = false;
+    let updateFileBusy = false;
+    let deleteFileBusy = false;
     let folderLoadRunId = 0;
     let folderTreeButtons = new Map();
     let folderTreeChildren = new Map();
+    let documentLoadRunId = 0;
+    const bulk = window.AlfrescoBulk.init({
+        rootPath: config.rootPath,
+        requestJson,
+        refresh: async ({ kind, succeeded }) => {
+            if (kind === 'folders') {
+                if (succeeded.length) {
+                    setSelectedFolder(config.rootPath, 'คลังเอกสาร', false);
+                    keywordInput.value = '';
+                }
+                await loadFolders({ restore: false });
+            }
+            state.page = 1;
+            await loadDocuments({ allowList: true, refresh: true });
+        },
+    });
 
     initResizableSidebar();
 
@@ -359,11 +379,16 @@
     }
 
     function setSelectedFolder(path, label, isHome = false, persist = true) {
+        if (state.folderPath !== path) documentLoadRunId += 1;
+        bulk.setContext(path, keywordInput.value.trim());
         state.folderPath = path;
         state.folderLabel = label || path;
         state.isHomeSelected = isHome;
-        createFolderBtn.disabled = isHome || !path || createFolderBusy;
-        createFolderBtn.title = isHome || !path ? 'เลือกโฟลเดอร์ปลายทางก่อนสร้าง' : `สร้างโฟลเดอร์ภายใต้: ${path}`;
+        const selectedButton = folderTreeButtons.get(path);
+        state.canCreateFolder = !isHome && Boolean(path) && selectedButton?.dataset.canCreateFolder !== 'false';
+        createFolderBtn.hidden = !state.canCreateFolder;
+        createFolderBtn.disabled = !state.canCreateFolder || createFolderBusy;
+        createFolderBtn.title = state.canCreateFolder ? `สร้างโฟลเดอร์ภายใต้: ${path}` : 'คุณไม่มีสิทธิ์สร้างโฟลเดอร์ในตำแหน่งนี้';
         folderPathInput.value = path;
         selectedFolder.textContent = isHome ? 'เลือกโฟลเดอร์เอกสาร' : state.folderLabel;
         if (persist) {
@@ -527,7 +552,8 @@
         createFolderName.disabled = busy;
         createFolderSaveBtn.disabled = busy;
         createFolderCancelBtn.disabled = busy;
-        createFolderBtn.disabled = busy || state.isHomeSelected || !state.folderPath;
+        createFolderBtn.hidden = !state.canCreateFolder;
+        createFolderBtn.disabled = busy || !state.canCreateFolder;
         createFolderForm.setAttribute('aria-busy', String(busy));
         createFolderSaveBtn.textContent = busy ? 'กำลังสร้าง...' : 'สร้างโฟลเดอร์';
     }
@@ -540,7 +566,7 @@
     }
 
     createFolderBtn.addEventListener('click', () => {
-        if (state.isHomeSelected || !state.folderPath || createFolderBusy) return;
+        if (!state.canCreateFolder || state.isHomeSelected || !state.folderPath || createFolderBusy) return;
         // Capture the displayed destination; never substitute the root at submission time.
         createFolderTarget = state.folderPath;
         createFolderParent.textContent = `สร้างภายใต้: ${createFolderTarget}`;
@@ -705,7 +731,7 @@
         };
     }
 
-    async function loadFolders() {
+    async function loadFolders(options = {}) {
         const runId = ++folderLoadRunId;
         folderList.innerHTML = '';
         folderTreeButtons = new Map();
@@ -734,7 +760,7 @@
             return;
         }
 
-        if (loaded && restoreLastFolder()) {
+        if (loaded && options.restore !== false && restoreLastFolder()) {
             return;
         }
 
@@ -823,6 +849,7 @@
 
             const treeItems = pickItems(payload).length ? pickItems(payload) : flattenTreeFolders(payload.tree || []);
             const folders = normalizeTreeFolders(treeItems, config.rootPath);
+            bulk.setFolders(folders);
             folderTreeChildren = buildFolderChildrenMap(folders);
             revealFolderChildren(config.rootPath);
             button.dataset.treeLoaded = 'true';
@@ -833,6 +860,7 @@
         } finally {
             button.dataset.treeLoading = 'false';
             button.classList.remove('loading');
+            if (runId === folderLoadRunId) setFolderLoading(false);
         }
     }
 
@@ -856,7 +884,16 @@
         }
 
         const children = folderTreeChildren.get(parentPath) || [];
-        children.forEach((folder) => addFolderButtonToTree(folder, folderTreeButtons));
+        // Insert siblings together instead of scanning all preceding siblings for
+        // every insertion (quadratic work for folders with many children).
+        const fragment = document.createDocumentFragment();
+        children.forEach((folder) => {
+            const button = createFolderButton(folder);
+            folderTreeButtons.set(folder.path, button);
+            markFolderChildrenState(folder.path, folderTreeChildren.get(folder.path) || []);
+            fragment.appendChild(button);
+        });
+        parentButton.after(fragment);
         markFolderGuide(parentPath);
         markFolderChildrenState(parentPath, children);
         parentButton.dataset.childrenRendered = 'true';
@@ -1098,7 +1135,32 @@
         return String(path || '').split('/').filter(Boolean).pop() || path || '';
     }
 
+    function canCreateFolderIn(item) {
+        const source = item?.entry || item || {};
+        const permissionValues = [
+            source.allowCreateFolder,
+            source.canCreateFolder,
+            source.allowCreate,
+            source.canCreate,
+            source.permissions?.canCreateFolder,
+            source.permissions?.canCreate,
+            source.allowableOperations?.canCreateFolder,
+            source.allowableOperations?.canCreate,
+        ].filter((value) => typeof value === 'boolean');
+
+        if (permissionValues.includes(false)) return false;
+        if (permissionValues.includes(true)) return true;
+
+        const operations = Array.isArray(source.allowableOperations)
+            ? source.allowableOperations.map((operation) => String(operation).toLowerCase())
+            : null;
+        if (operations) return operations.some((operation) => operation.includes('create') && (operation.includes('folder') || operation.includes('child')));
+
+        return true;
+    }
+
     function showLoadingSpinner() {
+        bulk.setDocuments([], state.folderPath);
         rows.innerHTML = `
             <tr>
                 <td colspan="5" class="loading-spinner-row">
@@ -1130,6 +1192,7 @@
         button.dataset.isTreeRoot = item.isTreeRoot ? 'true' : 'false';
         button.dataset.treeLoaded = 'false';
         button.dataset.treeLoading = 'false';
+        button.dataset.canCreateFolder = item.isHome ? 'false' : String(canCreateFolderIn(item));
         button.style.setProperty('--folder-level', String(Math.min(Number(item.level || 0), 6)));
         button.innerHTML = `
             <span class="folder-name">
@@ -1239,6 +1302,8 @@
     }
 
     async function loadDocuments(options = {}) {
+        const runId = ++documentLoadRunId;
+        bulk.setContext(state.folderPath, keywordInput.value.trim());
         const maxItems = Number(pageSizeInput.value || 25);
         const skipCount = (state.page - 1) * maxItems;
         const keyword = keywordInput.value.trim();
@@ -1286,6 +1351,7 @@
             payload = await requestJson(`${url.pathname}${url.search}`);
         }
 
+        if (runId !== documentLoadRunId) return;
         const items = pickItems(payload).filter((item) => item.isDocument !== false && item.type !== 'cmis:folder');
         state.hasMoreItems = Boolean(payload.hasMoreItems);
         state.currentItemCount = items.length;
@@ -1333,6 +1399,7 @@
     }
 
     function renderRows(items) {
+        bulk.setDocuments([], state.folderPath);
         if (!items.length) {
             const keyword = keywordInput.value.trim();
             rows.innerHTML = `
@@ -1369,16 +1436,31 @@
                 : '';
             const updateAction = allowUpdate
                 ? `
-                            <button type="button" class="update-file-btn icon-action-btn update-action-btn" data-id="${id}" data-name="${openName}" data-allow-update="true" aria-label="Update ไฟล์" title="Update ไฟล์">
+                            <button type="button" class="update-file-btn row-action-menu-item update-action-btn" data-id="${id}" data-name="${openName}" data-allow-update="true" role="menuitem">
                                 <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+                                <span>อัปเดตไฟล์</span>
                             </button>
                 `
                 : '';
             const deleteAction = allowDelete
                 ? `
-                            <button type="button" class="delete-file-btn icon-action-btn delete-action-btn" data-id="${id}" data-name="${openName}" data-allow-delete="true" aria-label="ลบไฟล์" title="ลบไฟล์">
+                            <button type="button" class="delete-file-btn row-action-menu-item delete-action-btn" data-id="${id}" data-name="${openName}" data-allow-delete="true" role="menuitem">
                                 <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
+                                <span>ลบไฟล์</span>
                             </button>
+                `
+                : '';
+            const moreActions = updateAction || deleteAction
+                ? `
+                            <div class="row-more-actions">
+                                <button type="button" class="row-more-btn icon-action-btn" aria-label="คำสั่งเพิ่มเติม" title="คำสั่งเพิ่มเติม" aria-haspopup="menu" aria-expanded="false">
+                                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
+                                </button>
+                                <div class="row-action-menu" role="menu" hidden>
+${updateAction}
+${deleteAction}
+                                </div>
+                            </div>
                 `
                 : '';
 
@@ -1386,6 +1468,7 @@
                 <tr>
                     <td>
                         <div class="file-name">
+                            <input class="bulk-checkbox bulk-document-check" type="checkbox" data-id="${id}" aria-label="เลือกไฟล์ ${name}" ${id ? '' : 'disabled'}>
                             <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
                             <span>${name}</span>
                         </div>
@@ -1423,13 +1506,22 @@
                                 <i class="fa-solid fa-download" aria-hidden="true"></i>
                             </button>
 ${renameAction}
-${updateAction}
-${deleteAction}
+${moreActions}
                         </div>
                     </td>
                 </tr>
             `;
         }).join('');
+        bulk.setDocuments(items, state.folderPath);
+    }
+
+    function closeRowActionMenus(exceptButton = null) {
+        rows.querySelectorAll('.row-more-btn[aria-expanded="true"]').forEach((button) => {
+            if (button === exceptButton) return;
+            button.setAttribute('aria-expanded', 'false');
+            const menu = button.parentElement?.querySelector('.row-action-menu');
+            if (menu) menu.hidden = true;
+        });
     }
 
     function sortItems(items) {
@@ -1769,7 +1861,9 @@ ${deleteAction}
         }, 0);
     }
 
-    function hideRenameModal() {
+    function hideRenameModal(force = false) {
+        if (renameFileBusy && !force) return;
+
         if (renameFileModal) {
             renameFileModal.hidden = true;
         }
@@ -1778,6 +1872,7 @@ ${deleteAction}
     }
 
     function setRenameModalBusy(isBusy) {
+        renameFileBusy = isBusy;
         if (renameFileInput) {
             renameFileInput.disabled = isBusy;
         }
@@ -1824,6 +1919,19 @@ ${deleteAction}
             : `${trimmedBaseName}${extension}`;
     }
 
+    async function refreshDocumentsAfterMutation() {
+        keywordInput.value = '';
+        state.page = 1;
+
+        try {
+            await loadDocuments({ allowList: true, refresh: true });
+            return true;
+        } catch (error) {
+            setMessage('ดำเนินการสำเร็จ แต่โหลดรายการเอกสารใหม่ไม่สำเร็จ กรุณากดรีเฟรช', true);
+            return false;
+        }
+    }
+
     async function renameFile(id, currentName, nextName) {
         if (!id) {
             throw new Error('ไม่พบ id ของไฟล์');
@@ -1852,12 +1960,9 @@ ${deleteAction}
 
         const url = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
         url.searchParams.set('id', id);
-        const payload = await patchJson(`${url.pathname}${url.search}`, { name: trimmedName });
-        keywordInput.value = '';
-        state.page = 1;
-        await loadDocuments({ allowList: true, refresh: true });
-        setMessage(payload.message || `แก้ไขชื่อไฟล์เป็น ${trimmedName} แล้ว`);
-        return true;
+        await patchJson(`${url.pathname}${url.search}`, { name: trimmedName });
+        const refreshed = await refreshDocumentsAfterMutation();
+        return { refreshed };
     }
 
     function showUpdateModal(id, currentName) {
@@ -1880,7 +1985,9 @@ ${deleteAction}
         }, 0);
     }
 
-    function hideUpdateModal() {
+    function hideUpdateModal(force = false) {
+        if (updateFileBusy && !force) return;
+
         if (updateFileModal) {
             updateFileModal.hidden = true;
         }
@@ -1889,6 +1996,7 @@ ${deleteAction}
     }
 
     function setUpdateModalBusy(isBusy) {
+        updateFileBusy = isBusy;
         if (updateFileInput) {
             updateFileInput.disabled = isBusy;
         }
@@ -1921,7 +2029,7 @@ ${deleteAction}
         const url = new URL('/user-api/alfresco/documents/content', config.apiBaseUrl);
         url.searchParams.set('id', id);
         url.searchParams.set('name', file.name || currentName || '');
-        const payload = await requestJson(`${url.pathname}${url.search}`, {
+        await requestJson(`${url.pathname}${url.search}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': file.type || 'application/octet-stream',
@@ -1929,11 +2037,8 @@ ${deleteAction}
             body: file,
         });
 
-        keywordInput.value = '';
-        state.page = 1;
-        await loadDocuments({ allowList: true, refresh: true });
-        setMessage(payload.message || `Update ไฟล์ ${currentName || '-'} แล้ว`);
-        return true;
+        const refreshed = await refreshDocumentsAfterMutation();
+        return { refreshed };
     }
 
     function showDeleteModal(id, currentName) {
@@ -1952,7 +2057,9 @@ ${deleteAction}
         deleteFileCancelBtn?.focus();
     }
 
-    function hideDeleteModal() {
+    function hideDeleteModal(force = false) {
+        if (deleteFileBusy && !force) return;
+
         if (deleteFileModal) {
             deleteFileModal.hidden = true;
         }
@@ -1961,6 +2068,7 @@ ${deleteAction}
     }
 
     function setDeleteModalBusy(isBusy) {
+        deleteFileBusy = isBusy;
         if (deleteFileConfirmBtn) {
             deleteFileConfirmBtn.disabled = isBusy;
             deleteFileConfirmBtn.innerHTML = isBusy
@@ -1982,15 +2090,13 @@ ${deleteAction}
 
         const url = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
         url.searchParams.set('id', id);
-        const payload = await deleteJson(`${url.pathname}${url.search}`);
-        keywordInput.value = '';
-        state.page = 1;
-        await loadDocuments({ allowList: true, refresh: true });
-        setMessage(payload.message || `ลบไฟล์ ${currentName || '-'} แล้ว`);
-        return true;
+        await deleteJson(`${url.pathname}${url.search}`);
+        const refreshed = await refreshDocumentsAfterMutation();
+        return { refreshed };
     }
 
     function showSelectFolderPrompt() {
+        bulk.setDocuments([], state.folderPath);
         rows.innerHTML = `
             <tr>
                 <td colspan="5" class="empty-state-cell">
@@ -2143,10 +2249,15 @@ ${deleteAction}
         });
     });
 
-    clearBtn.addEventListener('click', () => {
-        keywordInput.value = '';
-        keywordInput.focus();
-    });
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            keywordInput.value = '';
+            bulk.setContext(state.folderPath, '');
+            keywordInput.focus();
+        });
+    }
+
+    keywordInput.addEventListener('input', () => bulk.setContext(state.folderPath, keywordInput.value.trim()));
 
     reloadFoldersBtn.addEventListener('click', () => loadFolders().catch((error) => setMessage(error.message, true)));
     if (collapseFoldersBtn) {
@@ -2241,11 +2352,12 @@ ${deleteAction}
 
             try {
                 const nextName = buildRenameFileName(renameFileInput.value, activeRename.extension || '');
-                const didRename = await renameFile(activeRename.id, activeRename.currentName, nextName);
+                const renameResult = await renameFile(activeRename.id, activeRename.currentName, nextName);
 
-                if (didRename) {
+                if (renameResult) {
+                    hideRenameModal(true);
                     notifySuccess('แก้ไขชื่อไฟล์เรียบร้อยแล้ว');
-                    hideRenameModal();
+                    if (!renameResult.refreshed) notifyError('ดำเนินการสำเร็จ แต่โหลดรายการใหม่ไม่สำเร็จ กรุณากดรีเฟรช');
                 }
             } catch (error) {
                 const errorMessage = error.message || 'แก้ไขชื่อไฟล์ไม่สำเร็จ';
@@ -2279,15 +2391,16 @@ ${deleteAction}
             setUpdateModalBusy(true);
 
             try {
-                const didUpdate = await updateFileContent(
+                const updateResult = await updateFileContent(
                     activeUpdate.id,
                     activeUpdate.currentName,
                     updateFileInput.files?.[0] || null
                 );
 
-                if (didUpdate) {
+                if (updateResult) {
+                    hideUpdateModal(true);
                     notifySuccess('อัปเดตไฟล์เรียบร้อยแล้ว');
-                    hideUpdateModal();
+                    if (!updateResult.refreshed) notifyError('ดำเนินการสำเร็จ แต่โหลดรายการใหม่ไม่สำเร็จ กรุณากดรีเฟรช');
                 }
             } catch (error) {
                 const errorMessage = error?.message === 'Failed to fetch'
@@ -2322,11 +2435,12 @@ ${deleteAction}
             setDeleteModalBusy(true);
 
             try {
-                const didDelete = await deleteFile(activeDelete.id, activeDelete.currentName);
+                const deleteResult = await deleteFile(activeDelete.id, activeDelete.currentName);
 
-                if (didDelete) {
+                if (deleteResult) {
+                    hideDeleteModal(true);
                     notifySuccess('ลบไฟล์เรียบร้อยแล้ว');
-                    hideDeleteModal();
+                    if (!deleteResult.refreshed) notifyError('ดำเนินการสำเร็จ แต่โหลดรายการใหม่ไม่สำเร็จ กรุณากดรีเฟรช');
                 }
             } catch (error) {
                 const errorMessage = error.message || 'ลบไฟล์ไม่สำเร็จ';
@@ -2350,6 +2464,10 @@ ${deleteAction}
     }
 
     document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeRowActionMenus();
+        }
+
         if (event.key === 'Escape' && renameFileModal && !renameFileModal.hidden) {
             hideRenameModal();
         }
@@ -2367,7 +2485,12 @@ ${deleteAction}
         }
     });
 
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.row-more-actions')) closeRowActionMenus();
+    });
+
     rows.addEventListener('click', (event) => {
+        const moreButton = event.target.closest('.row-more-btn');
         const openButton = event.target.closest('.open-file-btn');
         const downloadButton = event.target.closest('.download-file-btn');
         const infoButton = event.target.closest('.file-info-btn');
@@ -2375,7 +2498,18 @@ ${deleteAction}
         const updateButton = event.target.closest('.update-file-btn');
         const deleteButton = event.target.closest('.delete-file-btn');
 
+        if (moreButton) {
+            event.stopPropagation();
+            const menu = moreButton.parentElement?.querySelector('.row-action-menu');
+            const willOpen = Boolean(menu?.hidden);
+            closeRowActionMenus(moreButton);
+            if (menu) menu.hidden = !willOpen;
+            moreButton.setAttribute('aria-expanded', String(willOpen));
+            return;
+        }
+
         if (renameButton) {
+            closeRowActionMenus();
             try {
                 if (renameButton.dataset.allowRename !== 'true') {
                     setMessage('คุณไม่มีสิทธิ์แก้ไขชื่อไฟล์นี้', true);
@@ -2390,6 +2524,7 @@ ${deleteAction}
         }
 
         if (updateButton) {
+            closeRowActionMenus();
             try {
                 if (updateButton.dataset.allowUpdate !== 'true') {
                     setMessage('คุณไม่มีสิทธิ์ Update ไฟล์นี้', true);
@@ -2404,6 +2539,7 @@ ${deleteAction}
         }
 
         if (deleteButton) {
+            closeRowActionMenus();
             try {
                 if (deleteButton.dataset.allowDelete !== 'true') {
                     setMessage('คุณไม่มีสิทธิ์ลบไฟล์นี้', true);
