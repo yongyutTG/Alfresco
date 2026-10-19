@@ -8,6 +8,7 @@
         lastFolderPath: 'alfresco_direct_last_folder_path',
         lastFolderLabel: 'alfresco_direct_last_folder_label',
         sidebarWidth: 'alfresco_direct_sidebar_width',
+        sidebarCollapsed: 'alfresco_direct_sidebar_collapsed',
     };
     const idleTimeoutMs = Number(config.idleTimeoutSeconds || 0) * 1000;
     let lastActivityWrite = 0;
@@ -34,11 +35,13 @@
         nameSortDirection: 'asc',
         createdSortDirection: 'desc',
         canCreateFolder: false,
+        currentDocuments: [],
     };
 
     const appLayout = document.querySelector('.app-layout');
     const sidebar = document.querySelector('.sidebar');
     const sidebarResizeHandle = document.getElementById('sidebarResizeHandle');
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
     const folderList = document.getElementById('folderList');
     const selectedFolder = document.getElementById('selectedFolder');
     const folderResultBadge = document.getElementById('folderResultBadge');
@@ -61,6 +64,7 @@
     const clearBtn = document.getElementById('clearBtn');
     const reloadFoldersBtn = document.getElementById('reloadFoldersBtn');
     const createFolderBtn = document.getElementById('createFolderBtn');
+    const createFolderTooltip = document.getElementById('createFolderTooltip');
     const createFolderModal = document.getElementById('createFolderModal');
     const createFolderForm = document.getElementById('createFolderForm');
     const createFolderParent = document.getElementById('createFolderParent');
@@ -70,9 +74,222 @@
     const createFolderCancelBtn = document.getElementById('createFolderCancelBtn');
     let createFolderTarget = null;
     let createFolderBusy = false;
+    const folderDeleteMenu = document.getElementById('folderDeleteMenu');
+    const folderMoreBtn = document.getElementById('folderMoreBtn');
+    const folderActionMenu = document.getElementById('folderActionMenu');
+    function closeFolderActionMenu() {
+        folderActionMenu.hidden = true;
+        folderMoreBtn.setAttribute('aria-expanded', 'false');
+    }
+    folderMoreBtn.addEventListener('click', () => {
+        const opening = folderActionMenu.hidden;
+        closeRowActionMenus();
+        folderActionMenu.hidden = !opening;
+        folderMoreBtn.setAttribute('aria-expanded', String(opening));
+        if (opening) folderActionMenu.querySelector('button:not([hidden])')?.focus();
+    });
+    document.addEventListener('click', (event) => {
+        if (!folderDeleteMenu.contains(event.target)) closeFolderActionMenu();
+    });
+    folderDeleteMenu.addEventListener('focusout', (event) => {
+        if (!folderDeleteMenu.contains(event.relatedTarget)) closeFolderActionMenu();
+    });
+    folderDeleteMenu.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeFolderActionMenu();
+            folderMoreBtn.focus();
+        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            closeRowActionMenus();
+            folderActionMenu.hidden = false;
+            folderMoreBtn.setAttribute('aria-expanded', 'true');
+            const items = [...folderActionMenu.querySelectorAll('button:not([hidden])')];
+            const index = items.indexOf(document.activeElement);
+            items[(index + (event.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length]?.focus();
+        }
+    });
+    const folderDeleteUi = Object.fromEntries(['Modal', 'Form', 'Path', 'Name', 'Location', 'Recursive', 'ConfirmField', 'ConfirmName', 'Status', 'Submit', 'Cancel', 'Btn'].map((key) => [key, document.getElementById(`deleteFolder${key}`)]));
+    let deletingFolder = false;
+    let folderDeleteTarget = null;
+    const folderEdit = Object.fromEntries(['Modal', 'Form', 'Title', 'Path', 'NameDisplay', 'Location', 'NameField', 'Name', 'TargetField', 'Target', 'Status', 'Save', 'Cancel'].map((key) => [key, document.getElementById(`folderEdit${key}`)]));
+    let folderEditTask = null;
+    let folderEditBusy = false;
+    function closeFolderEdit() {
+        if (folderEditBusy) return;
+        folderEdit.Modal.hidden = true;
+        document.querySelector('main').inert = false;
+        folderEditTask = null;
+        (folderDeleteMenu.hidden ? reloadFoldersBtn : folderMoreBtn).focus();
+    }
+    function openFolderEdit(operation) {
+        const button = folderTreeButtons.get(state.folderPath);
+        if (folderEditBusy || !button?.dataset.folderId || button.dataset[operation === 'rename' ? 'canRename' : 'canMove'] !== 'true') return;
+        closeFolderActionMenu();
+        folderEditTask = { operation, id: button.dataset.folderId, path: state.folderPath };
+        folderEdit.Title.textContent = operation === 'rename' ? 'เปลี่ยนชื่อโฟลเดอร์' : 'ย้ายโฟลเดอร์';
+        folderEdit.Save.title = operation === 'rename' ? 'บันทึกชื่อโฟลเดอร์ใหม่' : 'ย้ายโฟลเดอร์ไปยังปลายทางที่เลือก';
+        folderEdit.NameDisplay.textContent = button.dataset.folderName;
+        folderEdit.Location.closest('div').hidden = operation === 'rename';
+        folderEdit.Location.textContent = operation === 'rename' ? '' : displayFolderPathWithoutRoot(state.folderPath);
+        folderEdit.Name.value = button.dataset.folderName;
+        folderEdit.NameField.hidden = operation !== 'rename';
+        folderEdit.TargetField.hidden = operation !== 'move';
+        folderEdit.Name.required = operation === 'rename';
+        folderEdit.Target.required = operation === 'move';
+        folderEdit.Name.disabled = operation !== 'rename';
+        folderEdit.Target.disabled = operation !== 'move';
+        folderEdit.Target.replaceChildren(new Option('เลือกโฟลเดอร์ปลายทาง', ''));
+        const source = state.folderPath.replace(/\/+$/, '');
+        const parent = source.slice(0, source.lastIndexOf('/')) || '/';
+        for (const [path, entry] of folderTreeButtons) {
+            if (!path || path === parent || path === source || path.startsWith(`${source}/`)) continue;
+            folderEdit.Target.add(new Option(path, path));
+        }
+        folderEdit.Status.textContent = '';
+        folderEdit.Save.hidden = false;
+        folderEdit.Save.disabled = false;
+        folderEdit.Cancel.textContent = 'ยกเลิก';
+        folderEdit.Cancel.title = 'ยกเลิกและปิดหน้าต่าง';
+        folderEdit.Modal.hidden = false;
+        document.querySelector('main').inert = true;
+        (operation === 'rename' ? folderEdit.Name : folderEdit.Target).focus();
+    }
+    document.getElementById('renameFolderBtn').addEventListener('click', () => openFolderEdit('rename'));
+    document.getElementById('moveFolderBtn').addEventListener('click', () => openFolderEdit('move'));
+    folderEdit.Cancel.addEventListener('click', closeFolderEdit);
+    folderEdit.Modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeFolderEdit();
+        if (event.key === 'Tab') {
+            const controls = [...folderEdit.Form.querySelectorAll('input, select, button')].filter((el) => !el.disabled && !el.closest('[hidden]'));
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
+    });
+    folderEdit.Form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (folderEditBusy || !folderEditTask || folderEdit.Save.hidden) return;
+        const rename = folderEditTask.operation === 'rename';
+        const name = folderEdit.Name.value.trim();
+        if (rename && (!name || name === '.' || name === '..' || /[\\/\x00-\x1f\x7f]/.test(name))) {
+            folderEdit.Status.textContent = 'กรุณากรอกชื่อโฟลเดอร์ที่ถูกต้อง'; return;
+        }
+        if (!rename && !folderEdit.Target.value) return;
+        const body = rename ? { name } : { targetFolderPath: folderEdit.Target.value };
+        folderEditBusy = true;
+        folderEdit.Save.disabled = folderEdit.Cancel.disabled = folderEdit.Name.disabled = folderEdit.Target.disabled = true;
+        folderEdit.Status.textContent = 'กำลังบันทึก...';
+        try {
+            await requestJson(`/user-api/alfresco/folders/${encodeURIComponent(folderEditTask.id)}`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+            });
+            folderEdit.Status.textContent = rename ? 'เปลี่ยนชื่อโฟลเดอร์สำเร็จ' : 'ย้ายโฟลเดอร์สำเร็จ';
+        } catch (error) {
+            folderEdit.Status.textContent = `${error.message} กรุณาตรวจสอบรายการก่อนลองใหม่`;
+        } finally {
+            try { selectHomeFolder(); await loadFolders({ restore: false }); }
+            catch { folderEdit.Status.textContent += ' โหลดรายการใหม่ไม่สำเร็จ กรุณารีเฟรชหน้า'; }
+            folderEditBusy = false;
+            folderEdit.Save.hidden = true;
+            folderEdit.Cancel.disabled = false;
+            folderEdit.Cancel.textContent = 'ปิด';
+            folderEdit.Cancel.title = 'ปิดหน้าต่าง';
+            folderEdit.Cancel.focus();
+        }
+    });
+
+    function updateFolderDeleteConfirmation() {
+        const recursive = folderDeleteUi.Recursive.checked;
+        folderDeleteUi.ConfirmField.hidden = !recursive;
+        folderDeleteUi.Submit.textContent = recursive ? 'ลบพร้อมเนื้อหาทั้งหมด' : 'ลบโฟลเดอร์ว่าง';
+        folderDeleteUi.Submit.title = recursive ? 'ลบโฟลเดอร์พร้อมไฟล์และโฟลเดอร์ย่อยทั้งหมด' : 'ลบโฟลเดอร์ว่างที่เลือก';
+        folderDeleteUi.Submit.disabled = deletingFolder || !folderDeleteTarget ||
+            (recursive ? !folderDeleteTarget.canDeleteTree || folderDeleteUi.ConfirmName.value !== folderDeleteTarget.name : !folderDeleteTarget.canDelete);
+    }
+    function closeFolderDelete() {
+        if (deletingFolder) return;
+        folderDeleteUi.Modal.hidden = true;
+        folderDeleteTarget = null;
+        if (!folderDeleteMenu.hidden) folderMoreBtn.focus();
+        else document.getElementById('reloadFoldersBtn').focus();
+    }
+    folderDeleteUi.Btn.addEventListener('click', () => {
+        const button = folderTreeButtons.get(state.folderPath);
+        if (!button?.dataset.folderId || deletingFolder || folderDeleteMenu.hidden) return;
+        closeFolderActionMenu();
+        folderDeleteTarget = { id: button.dataset.folderId, path: state.folderPath, name: button.dataset.folderName,
+            canDelete: button.dataset.canDelete === 'true', canDeleteTree: button.dataset.canDeleteTree === 'true' };
+        folderDeleteUi.Form.reset();
+        folderDeleteUi.Recursive.disabled = !folderDeleteTarget.canDeleteTree;
+        folderDeleteUi.Name.textContent = folderDeleteTarget.name;
+        folderDeleteUi.Location.textContent = displayFolderPathWithoutRoot(folderDeleteTarget.path);
+        document.getElementById('deleteFolderTitle').textContent = `ลบโฟลเดอร์ “${folderDeleteTarget.name}”`;
+        folderDeleteUi.Status.textContent = '';
+        folderDeleteUi.Submit.hidden = false;
+        folderDeleteUi.Cancel.textContent = 'ยกเลิก';
+        folderDeleteUi.Cancel.title = 'ยกเลิกและปิดหน้าต่าง';
+        updateFolderDeleteConfirmation();
+        folderDeleteUi.Modal.hidden = false;
+        document.querySelector('main').inert = true;
+        folderDeleteUi.Cancel.focus();
+    });
+    folderDeleteUi.Recursive.addEventListener('change', updateFolderDeleteConfirmation);
+    folderDeleteUi.ConfirmName.addEventListener('input', updateFolderDeleteConfirmation);
+    folderDeleteUi.Cancel.addEventListener('click', () => {
+        if (!deletingFolder) { document.querySelector('main').inert = false; closeFolderDelete(); }
+    });
+    folderDeleteUi.Modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !deletingFolder) folderDeleteUi.Cancel.click();
+        if (event.key === 'Tab') {
+            const controls = [...folderDeleteUi.Form.querySelectorAll('input, button')].filter((el) => !el.disabled && !el.closest('[hidden]'));
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+        }
+    });
+    folderDeleteUi.Form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!folderDeleteTarget || deletingFolder || folderDeleteUi.Submit.disabled || folderDeleteUi.Submit.hidden) return;
+        deletingFolder = true;
+        folderDeleteUi.Cancel.disabled = folderDeleteUi.Recursive.disabled = folderDeleteUi.ConfirmName.disabled = true;
+        updateFolderDeleteConfirmation();
+        folderDeleteUi.Status.textContent = 'กำลังลบ กรุณารอ...';
+        try {
+            const recursive = folderDeleteUi.Recursive.checked;
+            const result = await requestJson(`/user-api/alfresco/folders/${encodeURIComponent(folderDeleteTarget.id)}?recursive=${recursive}`, {
+                method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(recursive ? { confirmName: folderDeleteUi.ConfirmName.value } : {}),
+            });
+            folderDeleteUi.Status.textContent = result.deleted === true ? 'ลบโฟลเดอร์สำเร็จ' :
+                `ยังลบไม่ครบ รายการที่ลบไม่ได้: ${(result.failedToDelete || []).join(', ') || 'กรุณาตรวจสอบรายการใหม่'}`;
+        } catch (error) {
+            folderDeleteUi.Status.textContent = `${error.message} ผลบางรายการอาจดำเนินการแล้ว กรุณาตรวจสอบก่อนลองใหม่`;
+        } finally {
+            try {
+                selectHomeFolder();
+                await loadFolders({ restore: false });
+            } catch { folderDeleteUi.Status.textContent += ' โหลดโฟลเดอร์ใหม่ไม่สำเร็จ กรุณารีเฟรชหน้า'; }
+            deletingFolder = false;
+            folderDeleteUi.Submit.hidden = true;
+            folderDeleteUi.Cancel.disabled = folderDeleteUi.ConfirmName.disabled = false;
+            folderDeleteUi.Cancel.textContent = 'ปิด';
+            folderDeleteUi.Cancel.title = 'ปิดหน้าต่าง';
+            folderDeleteUi.Cancel.focus();
+        }
+    });
     const collapseFoldersBtn = document.getElementById('collapseFoldersBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userName = document.getElementById('userName');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userPermissionMenu = document.getElementById('userPermissionMenu');
+    const permissionFolderName = document.getElementById('permissionFolderName');
+    const permissionMenuStatus = document.getElementById('permissionMenuStatus');
+    const permissionMenuList = document.getElementById('permissionMenuList');
+    const documentPermissionStatus = document.getElementById('documentPermissionStatus');
+    const documentPermissionList = document.getElementById('documentPermissionList');
+    const serverName = document.getElementById('serverName');
+    const currentDateTime = document.getElementById('currentDateTime');
     const userAvatar = document.getElementById('userAvatar');
     const sessionTimeoutModal = document.getElementById('sessionTimeoutModal');
     const sessionTimeoutMessage = document.getElementById('sessionTimeoutMessage');
@@ -131,7 +348,10 @@
         },
     });
 
+    initSidebarToggle();
     initResizableSidebar();
+    initServerClock();
+    initUserPermissionMenu();
 
     const savedUsername = localStorage.getItem(storage.username) || '-';
     if (userName) {
@@ -152,6 +372,228 @@
 
     function apiUrl(path) {
         return `${config.apiBaseUrl}${path}`;
+    }
+
+    function initServerClock() {
+        if (!currentDateTime) {
+            return;
+        }
+
+        let serverTimeOffsetMs = null;
+        let serverTimezone = 'Asia/Bangkok';
+        let formatter = createFormatter(serverTimezone);
+
+        function createFormatter(timezone) {
+            try {
+                return new Intl.DateTimeFormat('th-TH-u-nu-latn', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hourCycle: 'h23',
+                    timeZone: timezone,
+                });
+            } catch (error) {
+                serverTimezone = 'Asia/Bangkok';
+                return createFormatter(serverTimezone);
+            }
+        }
+
+        function update() {
+            if (serverTimeOffsetMs === null) {
+                currentDateTime.textContent = 'กำลังซิงก์เวลา...';
+                currentDateTime.dateTime = '';
+                return;
+            }
+
+            const now = new Date(Date.now() + serverTimeOffsetMs);
+            const parts = Object.fromEntries(formatter.formatToParts(now).map((part) => [part.type, part.value]));
+            currentDateTime.textContent = `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
+            currentDateTime.dateTime = now.toISOString();
+        }
+
+        async function sync() {
+            try {
+                const requestedAt = Date.now();
+                const payload = await requestJson(`/user-api/system/info?_=${requestedAt}`);
+                const parsedTime = Date.parse(payload.serverTime);
+                if (!Number.isFinite(parsedTime)) {
+                    throw new Error('รูปแบบเวลา Server ไม่ถูกต้อง');
+                }
+
+                const receivedAt = Date.now();
+                serverTimeOffsetMs = parsedTime - Math.round((requestedAt + receivedAt) / 2);
+                serverTimezone = String(payload.timezone || 'Asia/Bangkok');
+                formatter = createFormatter(serverTimezone);
+                if (serverName && payload.serverName) {
+                    serverName.textContent = String(payload.serverName);
+                }
+                currentDateTime.closest('.user-context')?.setAttribute('title', `เวลาจาก Server · ${serverTimezone}`);
+                update();
+            } catch (error) {
+                if (serverTimeOffsetMs === null) {
+                    currentDateTime.textContent = 'ไม่สามารถซิงก์เวลา';
+                    currentDateTime.dateTime = '';
+                }
+                currentDateTime.closest('.user-context')?.setAttribute('title', error.message || 'ไม่สามารถโหลดเวลาจาก Server');
+            }
+        }
+
+        update();
+        window.setInterval(update, 60000);
+        window.setInterval(sync, 15 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sync();
+        });
+        sync();
+    }
+
+    function initUserPermissionMenu() {
+        if (!userMenuBtn || !userPermissionMenu || !permissionMenuStatus || !permissionMenuList) {
+            return;
+        }
+
+        userMenuBtn.addEventListener('click', async () => {
+            const opening = userPermissionMenu.hidden;
+            userPermissionMenu.hidden = !opening;
+            userMenuBtn.setAttribute('aria-expanded', String(opening));
+            userMenuBtn.classList.toggle('is-open', opening);
+            if (opening) {
+                renderCurrentDocumentPermissions();
+                await loadCurrentFolderPermissions();
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('.user-menu-wrap')) closeUserPermissionMenu();
+        });
+        userPermissionMenu.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeUserPermissionMenu();
+                userMenuBtn.focus();
+            }
+        });
+    }
+
+    function closeUserPermissionMenu() {
+        if (!userPermissionMenu || userPermissionMenu.hidden) return;
+        userPermissionMenu.hidden = true;
+        userMenuBtn.setAttribute('aria-expanded', 'false');
+        userMenuBtn.classList.remove('is-open');
+    }
+
+    async function loadCurrentFolderPermissions() {
+        if (!permissionMenuStatus || !permissionMenuList) return;
+        const folderButton = folderTreeButtons.get(state.folderPath);
+        const objectId = folderButton?.dataset.folderId || '';
+        const folderLabel = state.isHomeSelected ? 'หน้าหลัก' : state.folderLabel || 'โฟลเดอร์ที่เลือก';
+        permissionFolderName.textContent = folderLabel;
+        permissionMenuList.replaceChildren();
+
+        if (!objectId) {
+            permissionMenuStatus.textContent = 'กรุณาเลือกโฟลเดอร์เพื่อดูสิทธิ์';
+            return;
+        }
+
+        const requestedObjectId = objectId;
+        permissionMenuStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลังโหลดสิทธิ์...</span>';
+        try {
+            const payload = await requestJson(`/user-api/alfresco/permissions?id=${encodeURIComponent(objectId)}`);
+            if (folderTreeButtons.get(state.folderPath)?.dataset.folderId !== requestedObjectId) return;
+            const entries = permissionEntries(payload);
+            if (!entries.length) {
+                permissionMenuStatus.textContent = 'API ไม่ได้ส่งรายละเอียดสิทธิ์สำหรับโฟลเดอร์นี้';
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            entries.forEach(([key, allowed]) => {
+                const item = document.createElement('li');
+                const icon = document.createElement('i');
+                const text = document.createElement('span');
+                item.className = allowed ? 'is-allowed' : 'is-denied';
+                icon.className = allowed ? 'fa-solid fa-check' : 'fa-solid fa-xmark';
+                icon.setAttribute('aria-hidden', 'true');
+                text.textContent = permissionLabel(key);
+                item.append(icon, text);
+                fragment.append(item);
+            });
+            permissionMenuList.append(fragment);
+            permissionMenuStatus.textContent = 'สิทธิ์อาจแตกต่างกันในแต่ละโฟลเดอร์';
+        } catch (error) {
+            permissionMenuStatus.textContent = error.message || 'โหลดข้อมูลสิทธิ์ไม่สำเร็จ';
+        }
+    }
+
+    function permissionEntries(payload) {
+        const candidates = [payload?.permissions, payload?.allowableOperations, payload?.capabilities, payload];
+        const source = candidates.find((item) => item && typeof item === 'object' && !Array.isArray(item)
+            && Object.values(item).some((value) => typeof value === 'boolean'));
+        if (source) {
+            const objectType = String(payload?.type || '').toLowerCase();
+            const folderPermissions = new Set(['canCreateFolder', 'canUpload', 'canRename', 'canMove', 'canDelete', 'canDeleteTree']);
+            const documentPermissions = new Set(['canView', 'canDownload', 'canRename', 'canMove', 'canEditProperties', 'canUpdateContent', 'canDelete']);
+            const relevantPermissions = objectType.includes('folder') ? folderPermissions
+                : objectType.includes('document') ? documentPermissions : null;
+            return Object.entries(source).filter(([key, value]) => typeof value === 'boolean'
+                && (!relevantPermissions || relevantPermissions.has(key)));
+        }
+        const list = candidates.find(Array.isArray);
+        return list ? list.map((key) => [String(key), true]) : [];
+    }
+
+    function permissionLabel(key) {
+        const labels = {
+            canread: 'ดูเอกสาร',
+            canview: 'ดูเอกสาร',
+            candownload: 'ดาวน์โหลดเอกสาร',
+            cancreate: 'สร้างรายการ',
+            cancreatefolder: 'สร้างโฟลเดอร์',
+            canupload: 'อัปโหลดไฟล์',
+            canrename: 'เปลี่ยนชื่อ',
+            canmove: 'ย้ายรายการ',
+            canupdate: 'อัปเดตไฟล์',
+            canupdatecontent: 'อัปเดตเนื้อหาไฟล์',
+            canwrite: 'แก้ไขข้อมูล',
+            caneditproperties: 'แก้ไขข้อมูลไฟล์',
+            candelete: 'ลบรายการ',
+            candeletetree: 'ลบโฟลเดอร์พร้อมเนื้อหา',
+        };
+        const normalized = String(key).replace(/[^a-z0-9]/gi, '').toLowerCase();
+        return labels[normalized] || String(key).replace(/([a-z])([A-Z])/g, '$1 $2');
+    }
+
+    function renderCurrentDocumentPermissions() {
+        if (!documentPermissionStatus || !documentPermissionList) return;
+        const documents = Array.isArray(state.currentDocuments) ? state.currentDocuments : [];
+        documentPermissionList.replaceChildren();
+        if (!documents.length) {
+            documentPermissionStatus.textContent = 'ยังไม่มีเอกสารในหน้าปัจจุบัน';
+            return;
+        }
+
+        const summaries = [
+            ['ดูเอกสาร', documents.filter((item) => item.permissions?.canView === true).length],
+            ['ดาวน์โหลดเอกสาร', documents.filter((item) => item.permissions?.canDownload === true).length],
+        ];
+        const fragment = document.createDocumentFragment();
+        summaries.forEach(([label, allowedCount]) => {
+            const item = document.createElement('li');
+            const icon = document.createElement('i');
+            const text = document.createElement('span');
+            const allAllowed = allowedCount === documents.length;
+            const partiallyAllowed = allowedCount > 0 && !allAllowed;
+            item.className = allAllowed ? 'is-allowed' : partiallyAllowed ? 'is-partial' : 'is-denied';
+            icon.className = allAllowed ? 'fa-solid fa-check' : partiallyAllowed ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-xmark';
+            icon.setAttribute('aria-hidden', 'true');
+            text.textContent = `${label}: ${allowedCount}/${documents.length} ไฟล์`;
+            item.append(icon, text);
+            fragment.append(item);
+        });
+        documentPermissionList.append(fragment);
+        documentPermissionStatus.textContent = 'สิทธิ์อาจแตกต่างกันในแต่ละไฟล์';
     }
 
     function notifySuccess(text) {
@@ -273,6 +715,29 @@
         });
     }
 
+    function initSidebarToggle() {
+        if (!appLayout || !sidebar || !sidebarToggleBtn) {
+            return;
+        }
+
+        function setSidebarCollapsed(collapsed, persist = true) {
+            sidebar.hidden = collapsed;
+            appLayout.classList.toggle('sidebar-collapsed', collapsed);
+            sidebarToggleBtn.setAttribute('aria-expanded', String(!collapsed));
+            sidebarToggleBtn.setAttribute('aria-label', collapsed ? 'แสดงเมนูโฟลเดอร์' : 'ซ่อนเมนูโฟลเดอร์');
+            sidebarToggleBtn.title = collapsed ? 'แสดงเมนูโฟลเดอร์' : 'ซ่อนเมนูโฟลเดอร์';
+            sidebarToggleBtn.classList.toggle('is-collapsed', collapsed);
+            if (persist) {
+                localStorage.setItem(storage.sidebarCollapsed, String(collapsed));
+            }
+        }
+
+        setSidebarCollapsed(localStorage.getItem(storage.sidebarCollapsed) === 'true', false);
+        sidebarToggleBtn.addEventListener('click', () => {
+            setSidebarCollapsed(!sidebar.hidden);
+        });
+    }
+
     function authHeaders(extraHeaders = {}) {
         return {
             Authorization: `Bearer ${token}`,
@@ -318,11 +783,11 @@
     }
 
     function expireSession() {
-        logout('Session หมดอายุ เนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่', true);
+        logout('เซสชันหมดอายุเนื่องจากไม่มีการใช้งาน กรุณาเข้าสู่ระบบใหม่', true);
     }
 
     function forceLogoutByApi() {
-        logout('Session หมดอายุ กรุณา login ใหม่');
+        logout('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
     }
 
     function setMessage(text, isError) {
@@ -380,16 +845,30 @@
     }
 
     function setSelectedFolder(path, label, isHome = false, persist = true) {
-        if (state.folderPath !== path) documentLoadRunId += 1;
+        if (state.folderPath !== path) {
+            documentLoadRunId += 1;
+            state.currentDocuments = [];
+        }
         bulk.setContext(path, keywordInput.value.trim());
         state.folderPath = path;
         state.folderLabel = label || path;
         state.isHomeSelected = isHome;
         const selectedButton = folderTreeButtons.get(path);
+        document.getElementById('renameFolderBtn').hidden = selectedButton?.dataset.canRename !== 'true';
+        document.getElementById('moveFolderBtn').hidden = selectedButton?.dataset.canMove !== 'true';
+        folderDeleteUi.Btn.hidden = !(selectedButton?.dataset.canDelete === 'true' || selectedButton?.dataset.canDeleteTree === 'true');
+        folderDeleteMenu.hidden = isHome || path === config.rootPath || !folderActionMenu.querySelector('button:not([hidden])');
+        folderDeleteUi.Btn.title = `ลบโฟลเดอร์ ${label || path}`;
+        folderMoreBtn.title = `จัดการโฟลเดอร์ ${label || path}`;
+        closeFolderActionMenu();
         state.canCreateFolder = !isHome && Boolean(path) && selectedButton?.dataset.canCreateFolder !== 'false';
         createFolderBtn.hidden = !state.canCreateFolder;
         createFolderBtn.disabled = !state.canCreateFolder || createFolderBusy;
         createFolderBtn.title = state.canCreateFolder ? `สร้างโฟลเดอร์ภายใต้: ${path}` : 'คุณไม่มีสิทธิ์สร้างโฟลเดอร์ในตำแหน่งนี้';
+        if (createFolderTooltip) {
+            createFolderTooltip.hidden = createFolderBtn.hidden;
+            createFolderTooltip.title = createFolderBtn.title;
+        }
         folderPathInput.value = path;
         selectedFolder.textContent = isHome ? 'เลือกโฟลเดอร์เอกสาร' : state.folderLabel;
         if (persist) {
@@ -399,6 +878,10 @@
         renderBreadcrumb(path, isHome);
 
         updateFolderSelection();
+        if (userPermissionMenu && !userPermissionMenu.hidden) {
+            renderCurrentDocumentPermissions();
+            loadCurrentFolderPermissions();
+        }
     }
 
     function updateFolderSelection() {
@@ -434,7 +917,7 @@
             const tag = index === parts.length - 1 ? 'strong' : 'button';
             const separator = index ? '<i class="fa-solid fa-chevron-right" aria-hidden="true"></i>' : '';
             const attrs = tag === 'button'
-                ? ` type="button" class="breadcrumb-action" data-path="${escapeHtml(part.path)}" data-label="${escapeHtml(part.label)}" data-home="${part.isHome ? 'true' : 'false'}"`
+                ? ` type="button" class="breadcrumb-action" data-path="${escapeHtml(part.path)}" data-label="${escapeHtml(part.label)}" data-home="${part.isHome ? 'true' : 'false'}" title="เปิด ${escapeHtml(part.label)}"`
                 : '';
 
             return `${separator}<${tag}${attrs}>${escapeHtml(part.label)}</${tag}>`;
@@ -490,11 +973,11 @@
         setResultCount(0);
         resetFolderResultBadge();
         showSelectFolderPrompt();
-        setMessage('เลือก folder เพื่อโหลดเอกสาร');
+        setMessage('เลือกโฟลเดอร์เพื่อโหลดเอกสาร');
         updatePager(false);
     }
 
-    function selectBreadcrumbFolder(path, label, isHome = false) {
+    async function selectBreadcrumbFolder(path, label, isHome = false) {
         if (isHome) {
             selectHomeFolder();
             return;
@@ -511,20 +994,14 @@
         state.hasKnownTotal = false;
         setResultCount(0);
         resetFolderResultBadge();
-        showSelectFolderPrompt();
-        updatePager(false);
-
-        if (button?.dataset.hasChildren === 'true') {
-            setMessage('folder นี้มี folder ย่อย กรุณาเลือก folder ย่อยเพื่อแสดงเอกสาร');
-        } else {
-            setMessage('เลือก folder เพื่อโหลดเอกสาร');
-        }
+        updatePager(true);
+        await loadDocuments({ allowList: true });
     }
 
     async function requestJson(path, options = {}) {
         if (hasIdleExpired()) {
             expireSession();
-            throw new Error('Session หมดอายุ กรุณา login ใหม่');
+            throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
         }
 
         const response = await fetch(apiUrl(path), {
@@ -535,7 +1012,7 @@
 
         if (response.status === 401) {
             forceLogoutByApi();
-            throw new Error('Session หมดอายุ กรุณา login ใหม่');
+            throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
         }
 
         if (!response.ok) {
@@ -766,7 +1243,7 @@
         }
 
         setSelectedFolder(state.folderPath, state.folderLabel, state.isHomeSelected, false);
-        setMessage(loaded ? 'เลือก folder หลักเพื่อดู folder ย่อย หรือเลือก folder ปลายทางเพื่อแสดงเอกสาร' : 'เลือก folder เพื่อโหลดเอกสาร');
+        setMessage(loaded ? 'เลือกโฟลเดอร์หลักเพื่อดูโฟลเดอร์ย่อย หรือเลือกโฟลเดอร์ปลายทางเพื่อแสดงเอกสาร' : 'เลือกโฟลเดอร์เพื่อโหลดเอกสาร');
     }
 
     function markFolderChildrenState(path, children) {
@@ -803,7 +1280,7 @@
         markFolderChildrenState(item.path, children);
     }
 
-    function setFolderLoading(isLoading, text = 'กำลังโหลด folder...') {
+    function setFolderLoading(isLoading, text = 'กำลังโหลดโฟลเดอร์...') {
         const existing = document.getElementById('folderLoadingState');
 
         if (!isLoading) {
@@ -856,7 +1333,7 @@
             button.dataset.treeLoaded = 'true';
             button.dataset.childrenLoaded = 'true';
             setSelectedFolder(state.folderPath, state.folderLabel, state.isHomeSelected);
-            setMessage(folders.length ? 'เลือก folder หลักเพื่อดู folder ย่อย หรือเลือก folder ปลายทางเพื่อแสดงเอกสาร' : 'ไม่พบ folder ย่อย');
+            setMessage(folders.length ? 'เลือกโฟลเดอร์หลักเพื่อดูโฟลเดอร์ย่อย หรือเลือกโฟลเดอร์ปลายทางเพื่อแสดงเอกสาร' : 'ไม่พบโฟลเดอร์ย่อย');
             return true;
         } finally {
             button.dataset.treeLoading = 'false';
@@ -1031,7 +1508,7 @@
         state.totalItems = 0;
         state.hasKnownTotal = false;
         setResultCount(0);
-        setMessage(`กำลังเปิด folder ล่าสุด: ${folderLabel}...`);
+        setMessage(`กำลังเปิดโฟลเดอร์ล่าสุด: ${folderLabel}...`);
         loadDocuments({ allowList: true }).catch((error) => {
             setMessage(error.message, true);
             setFolderResultBadge(`${folderLabel} · โหลดเอกสารไม่สำเร็จ`);
@@ -1084,6 +1561,16 @@
     function normalizePathForCompare(path) {
         const value = String(path || '').trim().replace(/\/+$/, '');
         return value || '/';
+    }
+
+    function displayFolderPathWithoutRoot(path) {
+        const normalizedPath = normalizePathForCompare(path);
+        const normalizedRoot = normalizePathForCompare(config.rootPath);
+        const relativePath = normalizedPath.startsWith(`${normalizedRoot}/`)
+            ? normalizedPath.slice(normalizedRoot.length + 1)
+            : normalizedPath.replace(/^\/+/, '');
+
+        return relativePath.split('/').filter(Boolean).join(' / ') || 'คลังเอกสาร';
     }
 
     function getParentFolderPath(path) {
@@ -1184,6 +1671,12 @@
         button.title = item.isHome ? 'กลับหน้าหลัก' : `เลือก ${folderName}`;
         button.setAttribute('aria-label', item.isHome ? 'กลับหน้าหลัก' : `เลือก ${folderName}`);
         button.dataset.path = item.path;
+        button.dataset.folderId = item.id || '';
+        button.dataset.folderName = item.name || '';
+        button.dataset.canDelete = String(item.permissions?.canDelete === true);
+        button.dataset.canRename = String(item.permissions?.canRename === true);
+        button.dataset.canMove = String(item.permissions?.canMove === true);
+        button.dataset.canDeleteTree = String(item.permissions?.canDeleteTree === true);
         button.dataset.key = item.isHome ? 'home' : item.path;
         button.dataset.level = String(Number(item.level || 0));
         button.dataset.parentPath = item.parentPath || '';
@@ -1232,7 +1725,7 @@
                     if (isToggleClick) {
                         toggleFolderChildren(item.path);
                         showSelectFolderPrompt();
-                        setMessage(button.dataset.childrenRendered === 'true' ? 'เปิด folder หลักแล้ว' : 'ปิด folder หลักแล้ว');
+                        setMessage(button.dataset.childrenRendered === 'true' ? 'เปิดโฟลเดอร์หลักแล้ว' : 'ปิดโฟลเดอร์หลักแล้ว');
                         updatePager(false);
                         return;
                     }
@@ -1243,7 +1736,7 @@
                     toggleFolderChildren(item.path);
                     setSelectedFolder(item.path, folderName, false);
                     showSelectFolderPrompt();
-                    setMessage(button.dataset.childrenRendered === 'true' ? 'เปิด folder ย่อยแล้ว' : 'ปิด folder ย่อยแล้ว');
+                    setMessage(button.dataset.childrenRendered === 'true' ? 'เปิดโฟลเดอร์ย่อยแล้ว' : 'ปิดโฟลเดอร์ย่อยแล้ว');
                     updatePager(false);
                     return;
                 }
@@ -1265,7 +1758,7 @@
                 await loadDocuments({ allowList: true });
             } catch (error) {
                 setMessage(error.message, true);
-                setFolderResultBadge(`${state.folderLabel || 'folder ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
+                setFolderResultBadge(`${state.folderLabel || 'โฟลเดอร์ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
                 rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
                 updatePager(false);
             }
@@ -1328,7 +1821,7 @@
         }
 
         state.pageSize = maxItems;
-        const folderLabel = state.folderLabel || 'folder ที่เลือก';
+        const folderLabel = state.folderLabel || 'โฟลเดอร์ที่เลือก';
         const loadingText = keyword
             ? `กำลังค้นหาเอกสารใน ${folderLabel}...`
             : `กำลังโหลดเอกสารใน ${folderLabel}...`;
@@ -1354,6 +1847,7 @@
 
         if (runId !== documentLoadRunId) return;
         const items = pickItems(payload).filter((item) => item.isDocument !== false && item.type !== 'cmis:folder');
+        state.currentDocuments = items;
         state.hasMoreItems = Boolean(payload.hasMoreItems);
         state.currentItemCount = items.length;
         const totalInfo = pickTotalInfo(payload, items, skipCount);
@@ -1361,6 +1855,7 @@
         state.hasKnownTotal = totalInfo.hasKnownTotal;
 
         renderRows(sortItems(items));
+        if (userPermissionMenu && !userPermissionMenu.hidden) renderCurrentDocumentPermissions();
         setResultCount(items.length);
         const totalText = state.hasKnownTotal ? state.totalItems : items.length;
         const badgeText = keyword
@@ -1408,7 +1903,7 @@
                     <td colspan="5" class="empty-state-cell">
                         <div class="empty-state">
                             <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                            <p>${keyword ? 'ไม่พบเอกสารที่ตรงกับคำค้น' : 'ไม่พบเอกสารใน folder นี้'}</p>
+                            <p>${keyword ? 'ไม่พบเอกสารที่ตรงกับคำค้น' : 'ไม่พบเอกสารในโฟลเดอร์นี้'}</p>
                         </div>
                     </td>
                 </tr>
@@ -1437,7 +1932,7 @@
                 : '';
             const updateAction = allowUpdate
                 ? `
-                            <button type="button" class="update-file-btn row-action-menu-item update-action-btn" data-id="${id}" data-name="${openName}" data-allow-update="true" role="menuitem">
+                            <button type="button" class="update-file-btn row-action-menu-item update-action-btn" data-id="${id}" data-name="${openName}" data-allow-update="true" role="menuitem" title="อัปเดตเนื้อหาไฟล์">
                                 <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
                                 <span>อัปเดตไฟล์</span>
                             </button>
@@ -1445,7 +1940,7 @@
                 : '';
             const deleteAction = allowDelete
                 ? `
-                            <button type="button" class="delete-file-btn row-action-menu-item delete-action-btn" data-id="${id}" data-name="${openName}" data-allow-delete="true" role="menuitem">
+                            <button type="button" class="delete-file-btn row-action-menu-item delete-action-btn" data-id="${id}" data-name="${openName}" data-allow-delete="true" role="menuitem" title="ลบไฟล์">
                                 <i class="fa-regular fa-trash-can" aria-hidden="true"></i>
                                 <span>ลบไฟล์</span>
                             </button>
@@ -1585,7 +2080,7 @@ ${moreActions}
     async function fetchFileBlob(id, name, errorPrefix = 'เปิดไฟล์ไม่สำเร็จ', options = {}) {
         if (hasIdleExpired()) {
             expireSession();
-            throw new Error('Session หมดอายุ กรุณา login ใหม่');
+            throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
         }
 
         const actionQuery = options.action ? `&action=${encodeURIComponent(options.action)}` : '';
@@ -1717,7 +2212,7 @@ ${moreActions}
 
             if (hasIdleExpired()) {
                 expireSession();
-                throw new Error('Session หมดอายุ กรุณา login ใหม่');
+                throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
             }
 
             const response = await fetch(apiUrl('/user-api/alfresco/documents/bulk-download'), {
@@ -1733,7 +2228,7 @@ ${moreActions}
 
             if (response.status === 401) {
                 forceLogoutByApi();
-                throw new Error('Session หมดอายุ กรุณา login ใหม่');
+                throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
             }
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
@@ -2169,7 +2664,7 @@ ${moreActions}
                 <td colspan="5" class="empty-state-cell">
                     <div class="empty-state">
                         <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-                        <p>กรุณาเลือก folder เพื่อแสดงข้อมูลเอกสาร</p>
+                        <p>กรุณาเลือกโฟลเดอร์เพื่อแสดงข้อมูลเอกสาร</p>
                     </div>
                 </td>
             </tr>
@@ -2330,19 +2825,26 @@ ${moreActions}
     if (collapseFoldersBtn) {
         collapseFoldersBtn.addEventListener('click', () => {
             collapseAllFolderChildren();
-            setMessage('ปิด folder ย่อยทั้งหมดแล้ว');
+            setMessage('ปิดโฟลเดอร์ย่อยทั้งหมดแล้ว');
         });
     }
 
     if (folderCrumb) {
-        folderCrumb.addEventListener('click', (event) => {
+        folderCrumb.addEventListener('click', async (event) => {
             const button = event.target.closest('.breadcrumb-action');
 
             if (!button) {
                 return;
             }
 
-            selectBreadcrumbFolder(button.dataset.path || '', button.dataset.label || '', button.dataset.home === 'true');
+            try {
+                await selectBreadcrumbFolder(button.dataset.path || '', button.dataset.label || '', button.dataset.home === 'true');
+            } catch (error) {
+                setMessage(error.message, true);
+                setFolderResultBadge(`${state.folderLabel || 'โฟลเดอร์ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
+                rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+                updatePager(false);
+            }
         });
     }
 

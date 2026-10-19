@@ -56,6 +56,11 @@
         let opener = null;
         const selection = () => active?.kind === 'folders' ? folders : documents;
         const itemId = (item) => String(item.id || '');
+        const setButtonTitle = (button, tooltipId, title) => {
+            button.title = title;
+            const tooltip = get(tooltipId);
+            if (tooltip) tooltip.title = title;
+        };
 
         function update() {
             ui.DocumentActions.hidden = !documents.size;
@@ -63,10 +68,12 @@
             ui.FolderCount.textContent = `เลือก ${folders.size} โฟลเดอร์`;
             ui.MoveFolders.disabled = !folders.size || busy;
             ui.DownloadDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.allowDownload !== true && item.canDownload !== true && item.permissions?.canDownload !== true);
-            ui.DownloadDocuments.title = ui.DownloadDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ดาวน์โหลด' : 'ดาวน์โหลดไฟล์ที่เลือก';
+            setButtonTitle(ui.DownloadDocuments, 'bulkDownloadTooltip', busy ? 'กำลังดำเนินการ' : ui.DownloadDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ดาวน์โหลด' : 'ดาวน์โหลดไฟล์ที่เลือก');
             ui.DeleteDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.permissions?.canDelete === false || item.allowDelete === false);
-            ui.DeleteDocuments.title = ui.DeleteDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ลบ' : 'ลบไฟล์ที่เลือก';
+            setButtonTitle(ui.DeleteDocuments, 'bulkDeleteTooltip', busy ? 'กำลังดำเนินการ' : ui.DeleteDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ลบ' : 'ลบไฟล์ที่เลือก');
             ui.MoveDocuments.disabled = !documents.size || busy || [...documents.values()].some((item) => item.allowMove === false || item.permissions?.canMove === false);
+            setButtonTitle(ui.MoveDocuments, 'bulkMoveTooltip', busy ? 'กำลังดำเนินการ' : ui.MoveDocuments.disabled && documents.size ? 'บางรายการไม่มีสิทธิ์ย้าย' : 'ย้ายไฟล์ที่เลือกไปยังโฟลเดอร์อื่น');
+            ui.ClearDocuments.disabled = busy;
             const selectable = pageItems.filter((item) => itemId(item) && canSelectDocument(item));
             const count = selectable.filter((item) => documents.has(itemId(item))).length;
             ui.SelectPage.hidden = !selectable.length;
@@ -187,8 +194,10 @@
             ui.TargetPath.hidden = isDelete;
             ui.Confirm.hidden = false;
             ui.Confirm.textContent = isDelete ? `ลบไฟล์ ${items.length} รายการ` : `ยืนยัน${label} ${items.length} รายการ`;
+            ui.Confirm.title = isDelete ? `ยืนยันการลบไฟล์ ${items.length} รายการ` : `ยืนยัน${label} ${items.length} รายการ`;
             ui.Confirm.classList.toggle('danger-btn', isDelete);
             ui.Cancel.textContent = 'ยกเลิก';
+            ui.Cancel.title = 'ยกเลิกและปิดหน้าต่าง';
             ui.FolderSearch.value = '';
             ui.Target.value = '';
             drawTargets();
@@ -248,6 +257,7 @@
                 ui.Confirm.hidden = true;
                 ui.Cancel.disabled = ui.Target.disabled = ui.FolderSearch.disabled = false;
                 ui.Cancel.textContent = 'ปิด';
+                ui.Cancel.title = 'ปิดหน้าต่าง';
                 document.querySelector('main').inert = false;
                 document.querySelector('header').inert = false;
                 drawFolders();

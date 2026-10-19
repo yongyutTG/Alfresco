@@ -25,7 +25,7 @@
         <label for="password">รหัสผ่าน</label>
         <input id="password" name="password" type="password" autocomplete="current-password" required>
 
-        <button type="submit" id="loginBtn">เข้าสู่ระบบ</button>
+        <button type="submit" id="loginBtn" title="เข้าสู่ระบบ Alfresco">เข้าสู่ระบบ</button>
         <!-- <div class="hint">หลัง login สำเร็จ ระบบจะเก็บ accessToken ไว้ใน sessionStorage ของ browser แล้วพาไปหน้าไฟล์</div> -->
       </form>
        <p id="loginMessage" class="login-message" aria-live="polite"></p>
