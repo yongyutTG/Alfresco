@@ -20,10 +20,10 @@
       <div class="login-head">Alfresco Login</div>
       <form id="loginForm">
         <label for="username">ชื่อผู้ใช้งาน</label>
-        <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+        <input id="username" name="username" type="text"autofocus>
 
         <label for="password">รหัสผ่าน</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <input id="password" name="password" type="password"autofocus>
 
         <button type="submit" id="loginBtn" title="เข้าสู่ระบบ Alfresco">เข้าสู่ระบบ</button>
         <!-- <div class="hint">หลัง login สำเร็จ ระบบจะเก็บ accessToken ไว้ใน sessionStorage ของ browser แล้วพาไปหน้าไฟล์</div> -->
@@ -46,6 +46,7 @@
 
    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  
     <script src="<?= base_url('assets/js/direct-auth.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-auth.js') ?>"></script>
 </body>
 </html>

@@ -13,20 +13,18 @@
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
-    const message = document.getElementById('loginMessage');
+ 
 
-    configureToastr();
+    // configureToastr();
 
-    let existingToken = localStorage.getItem(storage.accessToken);
-
+    let existingToken = localStorage.getItem(st
+        verifyExistingToken(existingToken);
+    orage.accessToken);
     if (existingToken && hasIdleExpired()) {
         clearStoredSession();
         existingToken = null;
     }
-
-    if (existingToken) {
-        verifyExistingToken(existingToken);
-    } else {
+    if (existingToken) {} else {
         localStorage.removeItem(storage.lastActivity);
     }
 
@@ -76,20 +74,6 @@
             throw new Error(data.message || 'Token ใช้งานไม่ได้ กรุณา login ใหม่');
         }
     }
-
-    function configureToastr() {
-        if (!window.toastr) {
-            return;
-        }
-
-        window.toastr.options = {
-             closeButton: true,
-             progressBar: true,
-            //  positionClass: 'toast-center-center',
-            timeOut: '3500',
-        };
-    }
-
     function showToast(text, isError) {
         if (!window.toastr) {
             return;
@@ -101,16 +85,6 @@
             window.toastr.info(text);
         }
     }
-
-    function setMessage(text, isError) {
-        if (message) {
-            message.textContent = text;
-            message.classList.toggle('text-danger', Boolean(isError));
-        }
-
-        showToast(text, isError);
-    }
-
     function resetLoginButton() {
         loginBtn.disabled = false;
         loginBtn.textContent = 'เข้าสู่ระบบ';
@@ -124,7 +98,7 @@
         }
 
         sessionStorage.removeItem(storage.sessionMessage);
-        setMessage(text, true);
+        // setMessage(text, true);
     }
 
     showStoredSessionMessage();
@@ -134,16 +108,14 @@
 
         const username = usernameInput.value.trim();
         const password = passwordInput.value;
-        // console.log('Username:', username);
-        // console.log('Password:', password);
+        console.log('Username:', username);
+        console.log('Password:', password);
         if (username === "") {
-               //setMessage('กรุณากรอกชื่อผู้ใช้งาน', true);
-                showToast("กรุณากรอกชื่อผู้ใช้", true);
+               toastr.error("กรุณากรอกชื่อผู้ใช้", "แจ้งเตือน");
                 usernameInput.focus();
                 return;
             } else if (password === "") {
-                // setMessage('กรุณากรอกรหัสผ่าน', true);
-                showToast("กรุณากรอกรหัสผ่าน", true);
+                toastr.error("กรุณากรอกรหัสผ่าน", "แจ้งเตือน");
                 passwordInput.focus();
                 return;
             }
@@ -163,7 +135,7 @@
                 body: JSON.stringify({ username, password }),
             });
             const data = await response.json().catch(() => ({}));
-            // console.log('Login Response Data:', data);
+            //  console.log('Login Response Data:', data);
 
             if (response.ok && data.accessToken) {
                 localStorage.setItem(storage.accessToken, data.accessToken);
@@ -173,12 +145,10 @@
                 setTimeout(() => window.location.href = config.documentsUrl, 1000);
             } else {
                 showToast("ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง", true);
-                // setMessage(data.message || 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง', true);
                 resetLoginButton();
             }
         } catch (error) {
             showToast("เกิดข้อผิดพลาดในการเข้าสู่ระบบ", true);
-            // setMessage('เกิดข้อผิดพลาดในการเข้าสู่ระบบ', true);
             resetLoginButton();
         }
     });
