@@ -1540,6 +1540,12 @@ tbody tr:hover {
     background: #f4fafc;
 }
 
+#documentRows tr.document-reveal-highlight {
+    background: #e7f3f8;
+    box-shadow: inset 3px 0 0 var(--primary);
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+}
+
 .file-name {
     display: flex;
     align-items: center;

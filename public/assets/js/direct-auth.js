@@ -17,14 +17,14 @@
 
     // configureToastr();
 
-    let existingToken = localStorage.getItem(st
-        verifyExistingToken(existingToken);
-    orage.accessToken);
+   let existingToken = localStorage.getItem(storage.accessToken);
     if (existingToken && hasIdleExpired()) {
         clearStoredSession();
         existingToken = null;
     }
-    if (existingToken) {} else {
+    if (existingToken) {
+        verifyExistingToken(existingToken);
+    } else {
         localStorage.removeItem(storage.lastActivity);
     }
 
