@@ -1350,7 +1350,7 @@ input.bulk-checkbox {
 }
 
 .bulk-dialog.bulk-delete-mode {
-    width: min(500px, 100%);
+    width: min(760px, 100%);
 }
 
 .bulk-delete-mode .bulk-delete-icon {
@@ -3004,3 +3004,69 @@ td {
     }
 }
 
+#uploadDialog .session-dialog { max-height: calc(100dvh - 40px); overflow-y: auto; box-sizing: border-box; }
+#uploadDialog [hidden] { display: none !important; }
+#uploadDialog p, #uploadResults li { overflow-wrap: anywhere; }
+#uploadFiles { display: block; max-width: 100%; margin: 12px 0; }
+#uploadProgress { width: 100%; height: 18px; }
+#uploadResults { text-align: left; font-size: 13px; }
+#uploadDialog .upload-dialog-panel { width: min(960px, 100%); min-width: 0; }
+.upload-drop-zone { display: grid; justify-items: center; gap: 10px; border: 1px dashed #a3a3a3; border-radius: 6px; padding: 20px; background: #fafafa; }
+.upload-drop-zone > i { font-size: 26px; color: #606060; }
+.upload-drop-zone > span { font-size: 12px; color: #666; }
+.upload-drop-zone.drag-active { border-color: #23744c; background: #effaf3; }
+.upload-list-heading { display: flex; padding: 16px 0 8px; font-size: 13px; }
+.upload-heading { display: flex; gap: 14px; align-items: center; text-align: left; margin-bottom: 20px; }
+#uploadDialog .upload-heading .rename-icon { flex: 0 0 40px; margin: 0; }
+#uploadDialog .upload-destination { margin: 0; max-width: none; color: #666; }
+#uploadDialog .upload-heading h2 { margin: 0 0 6px; }
+#uploadResults.upload-file-list { list-style: none; margin: 0; padding: 0; max-height: min(360px, 38dvh); overflow-y: auto; min-width: 0; }
+.upload-file-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px) 32px; grid-template-areas: "name result action" "size result action"; gap: 4px 16px; padding: 14px 4px; border-bottom: 1px solid #e5e7eb; align-items: center; }
+.upload-file-name { grid-area: name; display: flex; align-items: center; gap: 12px; min-width: 0; font-weight: 600; color: #282828; }
+.upload-file-name > i { width: 28px; flex: 0 0 28px; text-align: center; font-size: 24px; color: #647273; }
+.upload-file-name .fa-file-pdf { color: #b54444; }
+.upload-file-name .fa-file-excel { color: #287550; }
+.upload-file-name > span { min-width: 0; overflow-wrap: anywhere; }
+.upload-file-size { grid-area: size; padding-left: 40px; color: #737373; font-size: 12px; }
+.upload-file-result { grid-area: result; min-width: 0; overflow-wrap: anywhere; }
+.upload-file-result small { display: block; margin-top: 5px; color: #a32c2c; }
+.upload-file-action { grid-area: action; }
+.upload-state { display: inline-flex; align-items: center; gap: 8px; }
+.upload-state > i { order: -1; flex-shrink: 0; }
+.upload-footer { position: sticky; bottom: -20px; background: #fff; border-top: 1px solid #ddd; margin-top: 16px; padding-top: 14px; }
+#uploadDialog #uploadProgress { display: block; height: 8px; accent-color: #27704b; margin: 0 0 10px; }
+#uploadDialog #uploadStatus { text-align: left; font-size: 13px; margin: 0 0 12px; }
+#uploadDialog .upload-footer .session-actions { justify-content: flex-end; }
+.upload-drop-zone.has-files { grid-template-columns: auto minmax(0, 1fr) auto; padding: 14px 18px; text-align: left; }
+.upload-drop-zone.has-files > span { grid-column: 2 / 4; justify-self: start; }
+.upload-drop-zone.has-files > strong { justify-self: start; font-size: 14px; }
+.upload-state { font-size: 12px; color: #666; }
+.upload-state-success { color: #17613b; }
+.upload-state-failed, .upload-state-invalid { color: #a32c2c; }
+.upload-state-sending { color: #1768a1; }
+.upload-state-unknown { color: #805900; }
+#uploadDialog .upload-remove { min-width: 28px; width: 28px; height: 28px; padding: 0; }
+#uploadNotice { color: #a32c2c; }
+#uploadDialog #uploadStatus, #uploadDialog #uploadNotice { max-width: none; }
+@media (max-width: 520px) {
+    #uploadDialog .upload-dialog-panel { padding: 18px 12px; }
+    .upload-file-row { grid-template-columns: minmax(0, 1fr) 32px; grid-template-areas: "name action" "size action" "result result"; gap: 6px; }
+    .upload-file-result { padding-left: 40px; }
+    .upload-drop-zone.has-files { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+    .upload-drop-zone.has-files > span { grid-column: auto; justify-self: center; }
+    .upload-drop-zone.has-files > strong { justify-self: center; }
+    .upload-footer { bottom: -20px; }
+}
+#uploadDialog .session-actions { flex-wrap: wrap; }
+.bulk-delete-mode .bulk-items { list-style: none; padding: 0; }
+.bulk-delete-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 220px); grid-template-areas: "name result"; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e5e7eb; overflow-wrap: anywhere; }
+.bulk-file-result { grid-area: result; min-width: 0; text-align: right; }
+.bulk-file-result small { display: block; margin-top: 5px; color: #a32c2c; }
+.bulk-delete-mode .bulk-operation-footer { position: sticky; bottom: -26px; background: #fff; border-top: 1px solid #ddd; padding-top: 14px; margin-top: 16px; }
+#bulkDeleteProgress { display: block; width: 100%; height: 8px; margin: 0 0 10px; accent-color: #27704b; }
+#bulkDeleteProgress[hidden] { display: none; }
+.bulk-delete-mode #bulkStatus { text-align: left; font-size: 13px; overflow-wrap: anywhere; }
+@media (max-width: 520px) {
+    .bulk-delete-result { grid-template-columns: minmax(0, 1fr); grid-template-areas: "name" "result"; gap: 8px; }
+    .bulk-file-result { padding-left: 40px; }
+}

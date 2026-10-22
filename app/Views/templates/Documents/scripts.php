@@ -9,4 +9,5 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script src="<?= base_url('assets/js/direct-bulk.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-bulk.js') ?>"></script>
+<script src="<?= base_url('assets/js/direct-upload.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-upload.js') ?>"></script>
 <script src="<?= base_url('assets/js/direct-documents.js') ?>?v=<?= filemtime(FCPATH . 'assets/js/direct-documents.js') ?>"></script>

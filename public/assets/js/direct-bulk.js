@@ -42,8 +42,39 @@
         });
     }
 
+    async function deleteSequentially(items, requestJson, onChange) {
+        const results = items.map((item) => ({ ...item, ok: false, state: 'pending', error: '' }));
+        onChange(results);
+        for (const item of results) {
+            item.state = 'deleting';
+            onChange(results);
+            try {
+                const response = await requestJson('/user-api/alfresco/documents/' + encodeURIComponent(item.id), { method: 'DELETE' });
+                if (response?.deleted !== true) {
+                    item.state = 'unknown';
+                    item.error = 'ยังยืนยันผลไม่ได้ กรุณารีเฟรชตรวจสอบก่อนลองอีกครั้ง';
+                    onChange(results);
+                    break;
+                }
+                item.ok = true;
+                item.deleted = true;
+                item.state = 'success';
+            } catch (error) {
+                const rejected = [400, 401, 403, 404, 409, 429].includes(error.status);
+                item.state = rejected ? 'failed' : 'unknown';
+                item.error = error.message || 'ติดต่อ API ไม่สำเร็จ';
+                onChange(results);
+                // Do not replay an uncertain delete, or flood an expired/rate-limited session.
+                if (!rejected || error.status === 401 || error.status === 429) break;
+            }
+            onChange(results);
+        }
+        return results;
+    }
+
     function init({ rootPath, requestJson, refresh, download }) {
         const get = (id) => document.getElementById(id);
+        const deleteProgress = get('bulkDeleteProgress');
         const ui = Object.fromEntries(['Modal', 'Form', 'Title', 'Description', 'Items', 'Destination', 'FolderSearch', 'Target', 'TargetPath', 'DeleteIcon', 'DeleteWarning', 'SelectedTitle', 'Status', 'Results', 'Confirm', 'Cancel', 'FolderMode', 'FolderPanel', 'FolderChoices', 'FolderCount', 'MoveFolders', 'ClearFolders', 'DocumentActions', 'DocumentCount', 'DownloadDocuments', 'MoveDocuments', 'DeleteDocuments', 'ClearDocuments', 'SelectPage'].map((key) => [key, get(`bulk${key}`)]));
         const documents = new Map();
         const folders = new Map();
@@ -162,6 +193,45 @@
             ui.Confirm.disabled = busy || !active || (active.operation === 'move' && !validTarget(ui.Target.value, rootPath, active.items, active.kind));
         }
 
+        function drawDeleteItems(states) {
+            const labels = { pending: 'รอลบ', deleting: 'กำลังลบ', success: 'ลบสำเร็จ', failed: 'ลบไม่สำเร็จ', unknown: 'ไม่ทราบผล กรุณารีเฟรชตรวจสอบก่อนลองอีกครั้ง' };
+            const icons = { pending: 'fa-regular fa-clock', deleting: 'fa-solid fa-spinner fa-spin', success: 'fa-solid fa-circle-check', failed: 'fa-solid fa-circle-exclamation', unknown: 'fa-solid fa-triangle-exclamation' };
+            ui.Items.replaceChildren();
+            states.forEach((item) => {
+                const state = item.state || 'pending';
+                const row = document.createElement('li');
+                row.className = 'bulk-delete-result';
+                const name = document.createElement('div');
+                name.className = 'upload-file-name';
+                const fileIcon = document.createElement('i');
+                const extension = String(item.name || '').split('.').pop().toLowerCase();
+                const type = { pdf: 'file-pdf', xlsx: 'file-excel', xls: 'file-excel', doc: 'file-word', docx: 'file-word', jpg: 'file-image', jpeg: 'file-image', png: 'file-image' }[extension] || 'file';
+                fileIcon.className = 'fa-regular fa-' + type;
+                fileIcon.setAttribute('aria-hidden', 'true');
+                const filename = document.createElement('span');
+                filename.textContent = item.name || item.id;
+                name.append(fileIcon, filename);
+                const result = document.createElement('div');
+                result.className = 'bulk-file-result';
+                const badge = document.createElement('span');
+                badge.className = 'upload-state upload-state-' + (state === 'deleting' ? 'sending' : state);
+                const icon = document.createElement('i');
+                icon.className = icons[state];
+                icon.setAttribute('aria-hidden', 'true');
+                const label = document.createElement('span');
+                label.textContent = labels[state];
+                badge.append(icon, label);
+                result.append(badge);
+                if (item.error) {
+                    const error = document.createElement('small');
+                    error.textContent = item.error;
+                    result.append(error);
+                }
+                row.append(name, result);
+                ui.Items.append(row);
+            });
+        }
+
         function open(kind, operation) {
             if (busy) return;
             let items = [...(kind === 'folders' ? folders : documents).values()];
@@ -171,6 +241,9 @@
             active = { kind, operation, items: items.map((item) => ({ ...item })) };
             const label = operation === 'delete' ? 'ลบไฟล์' : kind === 'folders' ? 'ย้ายโฟลเดอร์' : 'ย้ายไฟล์';
             const isDelete = operation === 'delete';
+            deleteProgress.hidden = true;
+            deleteProgress.max = items.length || 1;
+            deleteProgress.value = 0;
             ui.Form.classList.toggle('bulk-delete-mode', isDelete);
             ui.DeleteIcon.hidden = !isDelete;
             ui.DeleteWarning.hidden = !isDelete;
@@ -187,6 +260,7 @@
                 li.textContent = item.name || item.path || item.parentPath || 'ไม่พบชื่อรายการ';
                 ui.Items.append(li);
             });
+            if (isDelete) drawDeleteItems(items);
             ui.Results.hidden = true;
             ui.Results.replaceChildren();
             ui.Status.textContent = '';
@@ -230,6 +304,24 @@
             document.querySelector('header').inert = true;
             update();
             try {
+                if (kind === 'documents' && operation === 'delete') {
+                    deleteProgress.hidden = false;
+                    const results = await deleteSequentially(items, requestJson, (states) => {
+                        states.forEach((item) => {
+                            if (item.ok) documents.delete(item.id);
+                        });
+                        drawDeleteItems(states);
+                        deleteProgress.value = states.filter((item) => ['success', 'failed', 'unknown'].includes(item.state)).length;
+                        const current = states.find((item) => item.state === 'deleting');
+                        ui.Status.textContent = 'ลบสำเร็จ ' + states.filter((item) => item.ok).length + ' จาก ' + states.length + ' ไฟล์' + (current ? ' · กำลังลบ ' + (current.name || current.id) : '');
+                    });
+                    const succeeded = results.filter((item) => item.ok);
+                    const remaining = results.filter((item) => item.state === 'pending').length;
+                    ui.Status.textContent = 'ลบสำเร็จ ' + succeeded.length + ' จาก ' + results.length + ' ไฟล์ · ไม่สำเร็จ/ไม่ทราบผล ' + results.filter((item) => ['failed', 'unknown'].includes(item.state)).length + ' · ยังไม่ได้ส่ง ' + remaining;
+                    try { await refresh({ kind, succeeded }); }
+                    catch (_) { ui.Status.textContent += ' · โหลดรายการใหม่ไม่สำเร็จ กรุณารีเฟรช'; }
+                    return;
+                }
                 const payload = await requestJson(`/user-api/alfresco/${kind}/bulk-${operation}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
                 });
@@ -256,7 +348,7 @@
                 ui.Form.setAttribute('aria-busy', 'false');
                 ui.Confirm.hidden = true;
                 ui.Cancel.disabled = ui.Target.disabled = ui.FolderSearch.disabled = false;
-                ui.Cancel.textContent = 'ปิด';
+                ui.Cancel.textContent = operation === 'delete' ? 'เสร็จสิ้น' : 'ปิด';
                 ui.Cancel.title = 'ปิดหน้าต่าง';
                 document.querySelector('main').inert = false;
                 document.querySelector('header').inert = false;
@@ -291,9 +383,10 @@
         ui.FolderSearch.addEventListener('input', drawTargets);
         ui.Target.addEventListener('change', targetChanged);
         ui.Cancel.addEventListener('click', close);
-        ui.Modal.addEventListener('click', (event) => { if (event.target === ui.Modal) close(); });
+        // Only the explicit close/cancel/done button dismisses this dialog.
+        ui.Modal.addEventListener('click', (event) => { if (event.target === ui.Modal) event.preventDefault(); });
         ui.Modal.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') { event.preventDefault(); close(); }
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); return; }
             if (event.key !== 'Tab') return;
             const controls = [...ui.Form.querySelectorAll('input, select, button')].filter((el) => !el.disabled && !el.hidden && !el.closest('[hidden]'));
             const first = controls[0];
@@ -348,6 +441,6 @@
         };
     }
 
-    if (typeof module !== 'undefined' && module.exports) module.exports = { topLevelFolders, validTarget, displayFolderPath, canSelectDocument, resultItems };
+    if (typeof module !== 'undefined' && module.exports) module.exports = { topLevelFolders, validTarget, displayFolderPath, canSelectDocument, resultItems, deleteSequentially };
     else global.AlfrescoBulk = { init };
 })(typeof window === 'undefined' ? globalThis : window);

@@ -38,11 +38,14 @@
                 <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                 <span>การลบไฟล์ไม่สามารถย้อนกลับได้</span>
             </p>
+            <div class="bulk-operation-footer">
+            <progress id="bulkDeleteProgress" max="1" value="0" aria-label="จำนวนไฟล์ที่ประมวลผลการลบแล้ว" hidden></progress>
             <p id="bulkStatus" role="status" aria-live="polite"></p>
             <ul id="bulkResults" class="bulk-items" aria-label="ผลการดำเนินการ" hidden></ul>
             <div class="session-actions split-actions">
                 <button id="bulkConfirm" type="submit" title="ยืนยันการดำเนินการกับรายการที่เลือก">ยืนยัน</button>
                 <button id="bulkCancel" type="button" class="secondary-btn" title="ยกเลิกและปิดหน้าต่าง">ยกเลิก</button>
+            </div>
             </div>
         </form>
     </div>
@@ -238,7 +241,7 @@
                             <button id="deleteFolderBtn" type="button" class="row-action-menu-item" role="menuitem" title="ลบโฟลเดอร์ที่เลือก"><i class="fa-regular fa-trash-can" aria-hidden="true"></i><span>ลบโฟลเดอร์</span></button>
                         </div>
                     </div>
-                    <button id="uploadFilePlaceholderBtn" type="button" class="secondary-btn" disabled title="เตรียมไว้สำหรับฟังก์ชันอัปโหลดไฟล์" hidden>
+                    <button id="uploadFilePlaceholderBtn" type="button" class="secondary-btn" title="อัปโหลดไฟล์ไปยังโฟลเดอร์ที่เลือก" hidden>
                         <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
                         <span>อัปโหลดไฟล์</span>
                     </button>
@@ -359,6 +362,34 @@
         </section>
     </main>
 
+    <div id="uploadDialog" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="uploadTitle" hidden>
+      <div class="session-dialog rename-dialog upload-dialog-panel">
+        <div class="upload-heading">
+            <div class="rename-icon" aria-hidden="true"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div><h2 id="uploadTitle">อัปโหลดไฟล์</h2><p class="upload-destination"><i class="fa-regular fa-folder-open" aria-hidden="true"></i> <span id="uploadTarget"></span></p></div>
+        </div>
+        <div id="uploadDropZone" class="upload-drop-zone">
+            <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+            <strong>ลากไฟล์มาวางที่นี่</strong>
+            <button id="uploadChoose" type="button" class="secondary-btn"><i class="fa-solid fa-plus" aria-hidden="true"></i> เลือกไฟล์</button>
+            <span>สูงสุด 100 ไฟล์ · ไม่เกิน 25 MiB ต่อไฟล์</span>
+            <input id="uploadFiles" type="file" multiple hidden>
+        </div>
+        <p id="uploadNotice" role="alert" hidden></p>
+        <div class="upload-list-heading"><strong id="uploadCount">ยังไม่ได้เลือกไฟล์</strong></div>
+        <ul id="uploadResults" class="upload-file-list" aria-label="ไฟล์ที่เลือก"></ul>
+        <div class="upload-footer">
+        <progress id="uploadProgress" max="100" value="0" aria-label="จำนวนไฟล์ที่ประมวลผลแล้ว"></progress>
+        <p id="uploadStatus" role="status" aria-live="polite"></p>
+        <div class="session-actions split-actions">
+            <button id="uploadStart" type="button" disabled>อัปโหลด</button>
+            <button id="uploadStop" type="button" class="secondary-btn" hidden title="รอผลไฟล์ปัจจุบัน แล้วหยุดส่งไฟล์ที่เหลือ"><i class="fa-solid fa-pause" aria-hidden="true"></i> หยุดหลังไฟล์นี้</button>
+            <button id="uploadRetry" type="button" hidden>ลองใหม่เฉพาะไฟล์ที่ไม่สำเร็จ</button>
+            <button id="uploadClose" type="button" class="secondary-btn">ปิด</button>
+        </div>
+        </div>
+      </div>
+    </div>
     <?= $this->include('templates/Documents/scripts') ?>
 </body>
 </html>

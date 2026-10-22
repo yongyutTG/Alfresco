@@ -36,6 +36,7 @@
         createdSortDirection: 'desc',
         canCreateFolder: false,
         currentDocuments: [],
+        documentSearchActive: false,
         revealDocumentId: '',
     };
 
@@ -75,6 +76,21 @@
     const createFolderCancelBtn = document.getElementById('createFolderCancelBtn');
     let createFolderTarget = null;
     let createFolderBusy = false;
+    const uploader = window.createDocumentUploader({
+        notifySuccess,
+        notifyError,
+        request: (body) => requestJson('/user-api/alfresco/documents', { method: 'POST', body }),
+        refresh: async (uploadedFolderPath, uploadedDocuments = []) => {
+            state.revealDocumentId = uploadedDocuments[uploadedDocuments.length - 1]?.id || '';
+            keywordInput.value = '';
+            state.page = 1;
+            state.sortField = 'created';
+            state.createdSortDirection = 'desc';
+            const folder = folderTreeButtons.get(uploadedFolderPath);
+            setSelectedFolder(uploadedFolderPath, folder?.dataset.folderName || uploadedFolderPath.split('/').filter(Boolean).pop(), false);
+            await loadDocuments({ allowList: true, refresh: true, uploadedDocuments });
+        },
+    });
     const folderDeleteMenu = document.getElementById('folderDeleteMenu');
     const folderMoreBtn = document.getElementById('folderMoreBtn');
     const folderActionMenu = document.getElementById('folderActionMenu');
@@ -194,7 +210,7 @@
     folderEdit.Target.addEventListener('change', updateFolderEditSaveState);
     folderEdit.Cancel.addEventListener('click', closeFolderEdit);
     folderEdit.Modal.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') closeFolderEdit();
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); return; }
         if (event.key === 'Tab') {
             const controls = [...folderEdit.Form.querySelectorAll('input, select, button')].filter((el) => !el.disabled && !el.closest('[hidden]'));
             const first = controls[0], last = controls[controls.length - 1];
@@ -277,7 +293,7 @@
         if (!deletingFolder) { document.querySelector('main').inert = false; closeFolderDelete(); }
     });
     folderDeleteUi.Modal.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !deletingFolder) folderDeleteUi.Cancel.click();
+        if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); return; }
         if (event.key === 'Tab') {
             const controls = [...folderDeleteUi.Form.querySelectorAll('input, button')].filter((el) => !el.disabled && !el.closest('[hidden]'));
             const first = controls[0], last = controls[controls.length - 1];
@@ -899,6 +915,7 @@
         folderMoreBtn.title = `จัดการโฟลเดอร์ ${label || path}`;
         closeFolderActionMenu();
         state.canCreateFolder = !isHome && Boolean(path) && selectedButton?.dataset.canCreateFolder !== 'false';
+        uploader.setFolder(path, !isHome && selectedButton?.dataset.canUpload === 'true');
         createFolderBtn.hidden = !state.canCreateFolder;
         createFolderBtn.disabled = !state.canCreateFolder || createFolderBusy;
         createFolderBtn.title = state.canCreateFolder ? `สร้างโฟลเดอร์ภายใต้: ${path}` : 'คุณไม่มีสิทธิ์สร้างโฟลเดอร์ในตำแหน่งนี้';
@@ -1093,12 +1110,13 @@
 
     createFolderCancelBtn.addEventListener('click', closeCreateFolder);
     createFolderModal.addEventListener('click', (event) => {
-        if (event.target === createFolderModal) closeCreateFolder();
+        if (event.target === createFolderModal) event.preventDefault();
     });
     createFolderModal.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             event.preventDefault();
-            closeCreateFolder();
+            event.stopPropagation();
+            return;
         }
         if (event.key === 'Tab') {
             const controls = [createFolderName, createFolderSaveBtn, createFolderCancelBtn].filter((el) => !el.disabled);
@@ -1415,7 +1433,7 @@
             button.dataset.treeLoaded = 'true';
             button.dataset.childrenLoaded = 'true';
             setSelectedFolder(state.folderPath, state.folderLabel, state.isHomeSelected);
-            setMessage(folders.length ? 'เลือกโฟลเดอร์หลักเพื่อดูโฟลเดอร์ย่อย หรือเลือกโฟลเดอร์ปลายทางเพื่อแสดงเอกสาร' : 'ไม่พบโฟลเดอร์ย่อย');
+            if (state.isHomeSelected) setMessage(folders.length ? 'เลือกชื่อโฟลเดอร์เพื่อแสดงเอกสาร' : 'ไม่พบโฟลเดอร์ย่อย');
             return true;
         } finally {
             button.dataset.treeLoading = 'false';
@@ -1756,6 +1774,7 @@
         button.dataset.folderId = item.id || '';
         button.dataset.folderName = item.name || '';
         button.dataset.canDelete = String(item.permissions?.canDelete === true);
+        button.dataset.canUpload = String(item.permissions?.canUpload === true);
         button.dataset.canRename = String(item.permissions?.canRename === true);
         button.dataset.canMove = String(item.permissions?.canMove === true);
         button.dataset.canDeleteTree = String(item.permissions?.canDeleteTree === true);
@@ -1781,7 +1800,25 @@
         button.addEventListener('click', async (event) => {
             const isToggleClick = Boolean(event.target.closest('.folder-toggle'));
 
+            // Tree expansion must not replace the selected folder's document view.
+            if (isToggleClick) {
+                try {
+                    if (item.isTreeRoot && button.dataset.treeLoaded !== 'true') {
+                        await loadFullFolderTree(button);
+                        // Initial tree loading already expands the root.
+                    } else {
+                        toggleFolderChildren(item.path);
+                    }
+                } catch (error) {
+                    notifyError(error.message);
+                }
+                return;
+            }
+            const sameFolder = state.folderPath === item.path && state.isHomeSelected === Boolean(item.isHome);
+            if (sameFolder && !state.documentSearchActive && !keywordInput.value.trim()) return;
+
             state.page = 1;
+            state.documentSearchActive = false;
             setSelectedFolder(item.path, folderName, Boolean(item.isHome));
             keywordInput.value = '';
             state.currentItemCount = 0;
@@ -1794,44 +1831,6 @@
                 return;
             }
 
-            try {
-                if (item.isTreeRoot) {
-                    const loaded = await loadFullFolderTree(button);
-
-                    if (!loaded) {
-                        return;
-                    }
-
-                    setSelectedFolder(item.path, folderName, false);
-
-                    if (isToggleClick) {
-                        toggleFolderChildren(item.path);
-                        showSelectFolderPrompt();
-                        setMessage(button.dataset.childrenRendered === 'true' ? 'เปิดโฟลเดอร์หลักแล้ว' : 'ปิดโฟลเดอร์หลักแล้ว');
-                        updatePager(false);
-                        return;
-                    }
-
-                    collapseAllFolderChildren();
-                    setSelectedFolder(item.path, folderName, false);
-                } else if (isToggleClick && button.dataset.hasChildren === 'true') {
-                    toggleFolderChildren(item.path);
-                    setSelectedFolder(item.path, folderName, false);
-                    showSelectFolderPrompt();
-                    setMessage(button.dataset.childrenRendered === 'true' ? 'เปิดโฟลเดอร์ย่อยแล้ว' : 'ปิดโฟลเดอร์ย่อยแล้ว');
-                    updatePager(false);
-                    return;
-                }
-
-                if (button.dataset.hasChildren === 'true' && !isToggleClick) {
-                    toggleFolderChildren(item.path);
-                    setSelectedFolder(item.path, folderName, false);
-                }
-            } catch (error) {
-                setMessage(error.message, true);
-                updatePager(false);
-                return;
-            }
 
             updatePager(true);
             showLoadingSpinner();
@@ -1903,6 +1902,8 @@
         }
 
         state.pageSize = maxItems;
+        // Keep track of search results even if the input is subsequently cleared.
+        state.documentSearchActive = Boolean(keyword);
         const folderLabel = state.folderLabel || 'โฟลเดอร์ที่เลือก';
         const loadingText = keyword
             ? `กำลังค้นหาเอกสารใน ${folderLabel}...`
@@ -1928,12 +1929,20 @@
         }
 
         if (runId !== documentLoadRunId) return;
-        const items = pickItems(payload).filter((item) => item.isDocument !== false && item.type !== 'cmis:folder');
+        let items = pickItems(payload).filter((item) => item.isDocument !== false && item.type !== 'cmis:folder');
+        // CMIS query may lag behind successful creation. Use confirmed upload objects
+        // for this refresh, without fabricating metadata or replaying the upload.
+        const uploaded = options.uploadedDocuments || [];
+        const objectKey = (id) => String(id || '').split(';')[0];
+        const listedIds = new Set(items.map((item) => objectKey(item.id)));
+        const missingUploads = uploaded.filter((item) => item.id && !listedIds.has(objectKey(item.id)));
+        const mergedCount = items.length + missingUploads.length;
+        if (missingUploads.length) items = sortItems([...missingUploads, ...items]).slice(0, maxItems);
         state.currentDocuments = items;
-        state.hasMoreItems = Boolean(payload.hasMoreItems);
+        state.hasMoreItems = Boolean(payload.hasMoreItems) || mergedCount > maxItems;
         state.currentItemCount = items.length;
         const totalInfo = pickTotalInfo(payload, items, skipCount);
-        state.totalItems = totalInfo.totalItems;
+        state.totalItems = totalInfo.totalItems + (totalInfo.hasKnownTotal ? missingUploads.length : 0);
         state.hasKnownTotal = totalInfo.hasKnownTotal;
 
         renderRows(sortItems(items));
@@ -2983,7 +2992,7 @@ ${moreActions}
     if (fileInfoModal) {
         fileInfoModal.addEventListener('click', (event) => {
             if (event.target === fileInfoModal) {
-                hideFileInfoModal();
+                event.preventDefault();
             }
         });
     }
@@ -3045,7 +3054,7 @@ ${moreActions}
     if (renameFileModal) {
         renameFileModal.addEventListener('click', (event) => {
             if (event.target === renameFileModal) {
-                hideRenameModal();
+                event.preventDefault();
             }
         });
     }
@@ -3091,7 +3100,7 @@ ${moreActions}
     if (updateFileModal) {
         updateFileModal.addEventListener('click', (event) => {
             if (event.target === updateFileModal) {
-                hideUpdateModal();
+                event.preventDefault();
             }
         });
     }
@@ -3128,7 +3137,7 @@ ${moreActions}
     if (deleteFileModal) {
         deleteFileModal.addEventListener('click', (event) => {
             if (event.target === deleteFileModal) {
-                hideDeleteModal();
+                event.preventDefault();
             }
         });
     }
@@ -3138,20 +3147,9 @@ ${moreActions}
             closeRowActionMenus();
         }
 
-        if (event.key === 'Escape' && renameFileModal && !renameFileModal.hidden) {
-            hideRenameModal();
-        }
-
-        if (event.key === 'Escape' && updateFileModal && !updateFileModal.hidden) {
-            hideUpdateModal();
-        }
-
-        if (event.key === 'Escape' && deleteFileModal && !deleteFileModal.hidden) {
-            hideDeleteModal();
-        }
-
-        if (event.key === 'Escape' && fileInfoModal && !fileInfoModal.hidden) {
-            hideFileInfoModal();
+        // Escape may close action menus, but must not discard open dialog input.
+        if (event.key === 'Escape' && [renameFileModal, updateFileModal, deleteFileModal, fileInfoModal].some((modal) => modal && !modal.hidden)) {
+            event.preventDefault();
         }
     });
 

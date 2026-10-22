@@ -63,7 +63,7 @@ function harness(request) {
     const refreshes = [];
     const downloads = [];
     const api = context.window.AlfrescoBulk.init({ rootPath: '/root', requestJson: async (path, options) => {
-        requests.push({ path, body: JSON.parse(options.body), method: options.method });
+        requests.push({ path, body: options.body ? JSON.parse(options.body) : undefined, method: options.method });
         return request ? request() : { results: [{ id: '1', ok: true, moved: true }] };
     }, refresh: async (result) => refreshes.push(result), download: async (items) => downloads.push(items) });
     const get = (name) => document.getElementById(`bulk${name}`);
@@ -83,6 +83,18 @@ test('selected document actions appear in the selection toolbar', () => {
     assert.equal(h.get('DocumentCount').textContent, 'เลือกแล้ว 2 ไฟล์');
     h.get('ClearDocuments').emit('click');
     assert.equal(h.get('DocumentActions').hidden, true);
+});
+test('backdrop and Escape do not dismiss selected-file confirmation', () => {
+    const h = harness();
+    h.select();
+    h.get('DeleteDocuments').emit('click');
+    h.get('Modal').emit('click');
+    h.get('Modal').events.keydown({ key: 'Escape', preventDefault() {}, stopPropagation() {} });
+    assert.equal(h.get('Modal').hidden, false);
+    assert.equal(h.get('Items').children.length, 1);
+    assert.equal(h.requests.length, 0);
+    h.get('Cancel').emit('click');
+    assert.equal(h.get('Modal').hidden, true);
 });
 
 test('selected documents are passed to the bulk download handler', async () => {
@@ -121,21 +133,34 @@ test('moving selected files sends the documented body and removes successes', as
     assert.equal(h.get('Confirm').hidden, true);
 });
 
-test('bulk delete requires confirmation and retains only failures', async () => {
-    const h = harness(() => ({ results: [{ id: '1', ok: true, deleted: true }, { id: '2', ok: false, error: '<denied>' }] }));
+test('sequential delete requires confirmation and retains only failures', async () => {
+    let call = 0;
+    const h = harness(() => {
+        if (++call === 1) return { deleted: true };
+        throw Object.assign(new Error('<denied>'), { status: 403 });
+    });
     h.select([{ id: '1', name: 'one' }, { id: '2', name: 'two' }]);
     h.get('DeleteDocuments').emit('click');
     assert.equal(h.requests.length, 0);
     assert.equal(h.get('Title').textContent, 'ยืนยันการลบไฟล์');
     assert.equal(h.get('Description').textContent, 'คุณกำลังจะลบไฟล์ 2 รายการ กรุณาตรวจสอบก่อนยืนยัน');
     assert.equal(h.get('DeleteWarning').hidden, false);
+    assert.equal(h.get('DeleteProgress').hidden, true);
     assert.equal(h.get('Confirm').textContent, 'ลบไฟล์ 2 รายการ');
     assert.equal(h.document.activeElement, h.get('Cancel'));
     await h.get('Form').emit('submit');
-    assert.equal(h.requests[0].path, '/user-api/alfresco/documents/bulk-delete');
-    assert.equal('targetFolderPath' in h.requests[0].body, false);
+    assert.equal(h.requests[0].path, '/user-api/alfresco/documents/1');
+    assert.equal(h.requests[1].path, '/user-api/alfresco/documents/2');
+    assert.equal(h.requests[0].method, 'DELETE');
+    assert.equal(h.get('DeleteProgress').hidden, false);
+    assert.equal(h.get('DeleteProgress').max, 2);
+    assert.equal(h.get('DeleteProgress').value, 2);
+    assert.equal(h.get('Cancel').textContent, 'เสร็จสิ้น');
+    assert.equal(h.requests[0].body, undefined);
     assert.equal(h.get('DocumentCount').textContent, 'เลือกแล้ว 1 ไฟล์');
-    assert.equal(h.get('Results').children[1].textContent, 'two: <denied>');
+    assert.match(h.get('Items').children[1].children[1].children[1].textContent, /<denied>/);
+    assert.match(h.get('Items').children[0].children[1].children[0].className, /upload-state-success/);
+    assert.match(h.get('Items').children[0].children[1].children[0].children[0].className, /fa-circle-check/);
 });
 
 test('folder checkboxes send a folder batch separately from documents', async () => {
@@ -191,5 +216,5 @@ test('duplicate submits and cancel are blocked during a request; network failure
     reject(new Error('offline')); await pending;
     assert.equal(h.get('DocumentCount').textContent, 'เลือกแล้ว 1 ไฟล์');
     assert.equal(h.get('Confirm').hidden, true);
-    assert.match(h.get('Status').textContent, /offline/);
+    assert.match(h.get('Items').children[0].children[1].children[1].textContent, /offline/);
 });
