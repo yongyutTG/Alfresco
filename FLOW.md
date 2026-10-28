@@ -14,6 +14,31 @@ Browser
 
 โปรเจคนี้ใช้ CodeIgniter 4 เป็น frontend server สำหรับแสดงหน้าเว็บ ส่วน API ไม่ได้ยิงผ่าน Controller ของ CI4 แต่ยิงตรงจาก JavaScript ใน browser ไปที่ `UserAlfresco-api`
 
+## Runtime และ Framework
+
+```text
+PHP: 8.2 ขึ้นไป (ทดสอบกับ 8.4.27)
+CodeIgniter: 4.7.5
+PHPUnit: 11.x
+```
+
+CI4 4.7 ใช้ระบบ bootstrap ผ่าน `CodeIgniter\Boot` ใน `spark` และ `public/index.php` หาก deploy ไปเครื่องใหม่ต้องรัน `composer install` จาก `composer.lock` และห้ามนำโฟลเดอร์ `vendor` ของ CI4 รุ่นเก่ามาใช้ร่วมกัน
+
+ตรวจสอบ environment ก่อนเปิดระบบ:
+
+```bash
+php -v
+composer install
+php spark --version
+php spark routes
+```
+
+Development Server:
+
+```bash
+php spark serve --port 8086
+```
+
 ## 1. เข้าเว็บครั้งแรก
 
 URL:

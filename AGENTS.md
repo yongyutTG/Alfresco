@@ -24,6 +24,13 @@ Keep the current direct-browser API flow unless the user explicitly asks to move
 
 ## Local Setup
 
+Use PHP 8.2 or newer. The project currently uses CodeIgniter 4.7.5 and PHPUnit 11.x. Verify the CLI runtime before starting:
+
+```bash
+php -v
+composer install
+```
+
 Run the app with:
 
 ```bash

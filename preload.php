@@ -1,5 +1,8 @@
 <?php
 
+use CodeIgniter\Boot;
+use Config\Paths;
+
 /**
  * This file is part of CodeIgniter 4 framework.
  *
@@ -28,19 +31,6 @@ require __DIR__ . '/app/Config/Paths.php';
 
 // Path to the front controller
 define('FCPATH', __DIR__ . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR);
-
-/**
- * See https://www.php.net/manual/en/function.str-contains.php#126277
- */
-if (! function_exists('str_contains')) {
-    /**
-     * Polyfill of str_contains()
-     */
-    function str_contains(string $haystack, string $needle): bool
-    {
-        return empty($needle) || strpos($haystack, $needle) !== false;
-    }
-}
 
 class preload
 {
@@ -76,16 +66,18 @@ class preload
         $this->loadAutoloader();
     }
 
-    private function loadAutoloader()
+    private function loadAutoloader(): void
     {
-        $paths = new Config\Paths();
-        require rtrim($paths->systemDirectory, '\\/ ') . DIRECTORY_SEPARATOR . 'bootstrap.php';
+        $paths = new Paths();
+        require rtrim($paths->systemDirectory, '\\/ ') . DIRECTORY_SEPARATOR . 'Boot.php';
+
+        Boot::preload($paths);
     }
 
     /**
      * Load PHP files.
      */
-    public function load()
+    public function load(): void
     {
         foreach ($this->paths as $path) {
             $directory = new RecursiveDirectoryIterator($path['include']);

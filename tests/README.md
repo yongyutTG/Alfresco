@@ -13,8 +13,7 @@ use to test your application. Those details can be found in the documentation.
 
 ## Requirements
 
-It is recommended to use the latest version of PHPUnit. At the time of this
-writing we are running version 9.x. Support for this has been built into the
+The project uses PHPUnit 11.x with PHP 8.2 or newer. Support for this is built into the
 **composer.json** file that ships with CodeIgniter and can easily be installed
 via [Composer](https://getcomposer.org/) if you don't already have it installed globally.
 
@@ -42,16 +41,22 @@ More details on a test database setup are in the
 
 ## Running the tests
 
-The entire test suite can be run by simply typing one command-line command from the main directory.
+The entire test suite can be run from the project root with Composer:
 
 ```console
-> ./phpunit
+> composer test
+```
+
+The PHPUnit binary can also be called directly:
+
+```console
+> ./vendor/bin/phpunit
 ```
 
 If you are using Windows, use the following command.
 
 ```console
-> vendor\bin\phpunit
+> vendor\bin\phpunit.bat
 ```
 
 You can limit tests to those within a single test directory by specifying the

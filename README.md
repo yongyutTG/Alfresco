@@ -17,6 +17,39 @@ GET /documents
 
 CI4 ใช้เสิร์ฟหน้าเท่านั้น ไม่มี proxy API
 
+## Requirements
+
+```text
+PHP 8.2 ขึ้นไป (ทดสอบแล้วกับ PHP 8.4.27)
+CodeIgniter 4.7.5
+Composer 2
+PHP extensions: intl, mbstring, json
+```
+
+โปรเจกต์ไม่รองรับ PHP 7.4 ของ XAMPP รุ่นเก่าแล้ว ก่อนติดตั้งหรือเปิดระบบให้ตรวจ PHP ที่ command line ใช้งานจริง:
+
+```bash
+php -v
+where php
+```
+
+บน Linux/macOS ใช้ `which php` แทน `where php`
+
+## Install / Update Dependencies
+
+```bash
+composer install
+composer audit
+```
+
+หลังอัปเดต dependency ให้ตรวจ Framework และ routes:
+
+```bash
+php spark --version
+php spark routes
+composer test
+```
+
 ## Run
 
 ```bash
@@ -28,6 +61,14 @@ php spark serve --port 8086
 ```text
 http://localhost:8086/login
 ```
+
+ผลที่คาดหวังจาก `php spark --version`:
+
+```text
+CodeIgniter v4.7.5 Command Line Tool
+```
+
+หากพบ error เกี่ยวกับ `TimeTrait::createFromTimestamp()` แสดงว่ากำลังใช้ CodeIgniter รุ่นเก่ากับ PHP 8.4 ให้รัน `composer install` เพื่อให้ `vendor/` ตรงกับ `composer.lock`
 
 ## Direct API Calls ตรงๆเลย
 
