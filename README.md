@@ -26,7 +26,6 @@ Composer 2
 PHP extensions: intl, mbstring, json
 ```
 
-โปรเจกต์ไม่รองรับ PHP 7.4 ของ XAMPP รุ่นเก่าแล้ว ก่อนติดตั้งหรือเปิดระบบให้ตรวจ PHP ที่ command line ใช้งานจริง:
 
 ```bash
 php -v

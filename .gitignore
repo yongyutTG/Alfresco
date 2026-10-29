@@ -105,6 +105,9 @@ _modules/*
 # Netbeans
 nbproject/
 build/
+!build/
+build/*
+!build/deploy.sh
 nbbuild/
 dist/
 nbdist/
