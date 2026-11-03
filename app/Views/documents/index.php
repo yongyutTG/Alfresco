@@ -313,7 +313,7 @@
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         <span>ค้นหา</span>
                     </button>
-                    <button id="clearFiltersBtn" type="button" class="secondary-btn" title="ล้างชื่อไฟล์และช่วงวันที่ค้นหา">
+                    <button id="clearFiltersBtn" type="button" class="secondary-btn" title="ล้างชื่อไฟล์และช่วงวันที่ค้นหา" disabled>
                         <i class="fa-regular fa-circle-xmark" aria-hidden="true"></i>
                         <span>ล้าง</span>
                     </button>

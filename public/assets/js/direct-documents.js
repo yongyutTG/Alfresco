@@ -3018,13 +3018,16 @@ ${moreActions}
 
     keywordInput.addEventListener('input', () => {
         bulk.setContext(state.folderPath, keywordInput.value.trim());
+        updateClearFiltersState();
     });
 
     createdFromInput?.addEventListener('change', () => {
         if (createdToInput) createdToInput.min = createdFromInput.value;
+        updateClearFiltersState();
     });
     createdToInput?.addEventListener('change', () => {
         if (createdFromInput) createdFromInput.max = createdToInput.value;
+        updateClearFiltersState();
     });
 
     function formatLocalDate(date) {
@@ -3046,6 +3049,15 @@ ${moreActions}
         dateFilterBtnText.textContent = from && to
             ? `${from}–${to}`
             : from ? `ตั้งแต่ ${from}` : to ? `ถึง ${to}` : 'วันที่';
+    }
+
+    function updateClearFiltersState() {
+        if (!clearFiltersBtn) return;
+        clearFiltersBtn.disabled = !Boolean(
+            keywordInput.value.trim()
+            || createdFromInput?.value
+            || createdToInput?.value
+        );
     }
 
     function closeQuickDateFilterMenu() {
@@ -3074,6 +3086,7 @@ ${moreActions}
         createdToInput.value = formatLocalDate(today);
         createdFromInput.max = createdToInput.value;
         createdToInput.min = createdFromInput.value;
+        updateClearFiltersState();
     });
 
     applyDateFilterBtn?.addEventListener('click', () => {
@@ -3093,6 +3106,7 @@ ${moreActions}
         createdToInput.value = '';
         createdToInput.min = '';
         updateDateFilterButtonText();
+        updateClearFiltersState();
         closeQuickDateFilterMenu();
     });
 
@@ -3105,20 +3119,16 @@ ${moreActions}
     });
 
     clearFiltersBtn?.addEventListener('click', () => {
+        if (!keywordInput.value.trim() && !createdFromInput.value && !createdToInput.value) return;
         keywordInput.value = '';
         createdFromInput.value = '';
         createdFromInput.max = '';
         createdToInput.value = '';
         createdToInput.min = '';
         updateDateFilterButtonText();
+        updateClearFiltersState();
         closeQuickDateFilterMenu();
         bulk.setContext(state.folderPath, '');
-        state.page = 1;
-        if (state.isHomeSelected) {
-            showSelectFolderPrompt();
-            return;
-        }
-        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
     });
 
     reloadFoldersBtn.addEventListener('click', () => loadFolders().catch((error) => setMessage(error.message, true)));
