@@ -1440,6 +1440,54 @@ input.bulk-checkbox {
 }
 #folderEditPath, #folderEditStatus { overflow-wrap: anywhere; white-space: pre-line; }
 #folderEditTarget { max-width: 100%; width: 100%; min-height: 38px; }
+.rename-dialog.folder-move-mode {
+    width: min(860px, 100%);
+    max-height: 90vh;
+    overflow: auto;
+}
+.folder-move-mode #folderEditDescription {
+    max-width: none;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.folder-move-source {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 2px;
+    color: var(--text);
+    text-align: left;
+}
+.folder-move-source > i {
+    margin-top: 3px;
+    color: var(--primary);
+}
+.folder-move-source > div {
+    min-width: 0;
+    display: grid;
+    gap: 5px;
+}
+.folder-move-source strong,
+.folder-move-source span {
+    overflow-wrap: anywhere;
+}
+.folder-move-source strong {
+    font-size: 13px;
+    font-weight: 500;
+}
+.folder-move-source span {
+    color: var(--muted);
+    font-size: 12px;
+}
+#folderEditTargetSearch,
+#folderEditTarget {
+    width: 100%;
+    font-size: 13px;
+}
+#folderEditTarget {
+    height: auto;
+    padding: 8px;
+}
 #folderEditModal [hidden],
 #deleteFolderModal [hidden],
 #folderActionMenu [hidden] { display: none !important; }
@@ -2846,15 +2894,21 @@ td {
 .search-primary-row {
     display: grid;
     gap: 10px;
-    align-items: center;
+    align-items: end;
 }
 
 .search-primary-row {
-    grid-template-columns: minmax(260px, 1fr) 140px 140px;
+    grid-template-columns: minmax(360px, 1fr) minmax(150px, auto) 100px 90px 46px;
 }
 
 #searchForm .search-keyword-field {
+    min-width: 0;
     transform: none;
+}
+
+#searchForm .search-input-wrap input {
+    width: 100%;
+    padding-right: 12px;
 }
 
 .search-primary-row > button {
@@ -2867,6 +2921,218 @@ td {
 
 .search-primary-row button[type="submit"] {
     box-shadow: 0 8px 18px rgba(47, 111, 146, 0.14);
+}
+
+.quick-filter-wrap {
+    min-width: 0;
+}
+
+.date-filter-group {
+    min-height: 64px;
+    display: grid;
+    grid-template-columns: auto minmax(125px, 1fr) auto minmax(125px, 1fr);
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    border: 1px solid #d4deec;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.date-filter-group > i {
+    color: #526684;
+}
+
+.date-filter-group label {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: stretch;
+    gap: 1px;
+}
+
+.date-field-label {
+    color: #667892;
+    font-size: 11px;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+.date-filter-group input {
+    width: 100%;
+    min-height: 34px;
+    padding: 0 4px;
+    border: 0;
+    box-shadow: none;
+}
+
+.date-range-separator {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+#clearFiltersBtn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+    padding: 0 16px;
+    box-shadow: none;
+}
+
+.quick-filter-wrap {
+    position: relative;
+}
+
+#quickDateFilterBtn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    margin: 0;
+    padding: 0 14px;
+    box-shadow: none;
+}
+
+#searchForm .secondary-btn {
+    color: #314363;
+    background: #fff;
+    border-color: #d4deec;
+}
+
+#searchForm .secondary-btn:hover,
+#searchForm .secondary-btn:focus-visible {
+    color: var(--primary);
+    background: #f2f8fb;
+}
+
+#reloadFoldersBtn.icon-only-btn {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+}
+
+.quick-filter-menu {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    min-width: 180px;
+    padding: 6px;
+    border: 1px solid #d4deec;
+    border-radius: 7px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(31, 53, 87, 0.16);
+}
+
+.quick-filter-menu[hidden] {
+    display: none;
+}
+
+.quick-filter-menu button {
+    width: 100%;
+    min-height: 36px;
+    justify-content: flex-start;
+    padding: 0 10px;
+    border: 0;
+    color: #263a5d;
+    background: transparent;
+    box-shadow: none;
+}
+
+.quick-filter-menu button:hover,
+.quick-filter-menu button:focus-visible {
+    color: var(--primary);
+    background: #edf6fb;
+}
+
+.date-filter-popover {
+    right: auto;
+    width: min(430px, calc(100vw - 40px));
+    padding: 14px;
+}
+
+.date-popover-title {
+    display: block;
+    margin-bottom: 12px;
+    color: #263a5d;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.date-popover-fields {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto minmax(150px, 1fr);
+    align-items: end;
+    gap: 10px;
+}
+
+.date-popover-fields label {
+    display: grid;
+    gap: 5px;
+    color: #667892;
+    font-size: 12px;
+}
+
+.date-popover-fields input {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 9px;
+    border: 1px solid #d4deec;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.date-popover-fields .date-range-separator {
+    padding-bottom: 11px;
+}
+
+.date-preset-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.date-preset-actions button,
+.date-popover-actions button {
+    width: auto;
+}
+
+.date-preset-actions button {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid #d4deec;
+    border-radius: 999px;
+    background: #f7fafc;
+    font-size: 12px;
+}
+
+.date-popover-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #e5ebf3;
+}
+
+.date-popover-actions button {
+    min-height: 36px;
+    justify-content: center;
+    padding: 0 14px;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
 #reloadFoldersBtn {
@@ -2970,7 +3236,8 @@ td {
 
 @media (max-width: 1100px) {
     .search-primary-row {
-        grid-template-columns: minmax(240px, 1fr) 120px 120px;
+        grid-template-columns: minmax(360px, 1fr) minmax(150px, auto) 100px 90px 46px;
+        overflow-x: auto;
     }
 
     .bulk-actions,
@@ -2983,6 +3250,29 @@ td {
     .search-primary-row,
     .pagination {
         grid-template-columns: 1fr;
+    }
+
+    .date-filter-group {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 10px 12px;
+    }
+
+    .date-popover-fields {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .date-popover-fields .date-range-separator {
+        padding: 0;
+    }
+
+    .date-range-separator {
+        padding-left: 2px;
+    }
+
+    #clearFiltersBtn {
+        width: 100%;
     }
 
     .bulk-actions {

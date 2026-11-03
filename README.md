@@ -197,6 +197,25 @@ modal รายละเอียดไฟล์
 -> ค้นหาเอกสารด้วย /documents/search
 ```
 
+ค้นหาตามวันที่อัปโหลด:
+
+```text
+เลือกวันที่เริ่มต้นอย่างเดียว = ตั้งแต่วันนั้นเป็นต้นไป
+เลือกวันที่สิ้นสุดอย่างเดียว = ถึงวันนั้นโดยรวมทั้งวัน
+เลือกทั้งสองวัน = ค้นหาภายในช่วงวันที่
+สามารถใช้ร่วมกับชื่อไฟล์ได้
+ปุ่มล้างตัวกรองจะล้างชื่อไฟล์และช่วงวันที่ แล้วโหลดรายการปกติของโฟลเดอร์เดิม
+```
+
+Frontend ส่ง `createdFrom` และ `createdTo` รูปแบบ `YYYY-MM-DD` ไปยัง list/search API โดย backend กรองจาก `cmis:creationDate` ก่อนทำ pagination
+
+ทั้งการเปิดโฟลเดอร์และการค้นหาส่ง `scope=tree` เพื่อแสดงหรือค้นหาเอกสารภายในโฟลเดอร์ที่ผู้ใช้เลือก รวมโฟลเดอร์ย่อยทั้งหมด แต่ไม่ค้นหาข้ามไปยังโฟลเดอร์หลักอื่น
+
+```http
+GET /user-api/alfresco/documents?folderPath=/Sites/tg-saving/documentLibrary&createdFrom=2026-11-01&createdTo=2026-11-03
+GET /user-api/alfresco/documents/search?folderPath=/Sites/tg-saving/documentLibrary&q=23017&createdFrom=2026-11-01&createdTo=2026-11-03
+```
+
 เส้น list รายการเอกสาร ใช้ตอนเลือก folder หรือเปลี่ยนหน้า pagination:
 
 ```http

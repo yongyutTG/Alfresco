@@ -51,6 +51,14 @@
     const folderPathInput = document.getElementById('folderPath');
     const searchForm = document.getElementById('searchForm');
     const keywordInput = document.getElementById('keyword');
+    const createdFromInput = document.getElementById('createdFrom');
+    const createdToInput = document.getElementById('createdTo');
+    const quickDateFilterBtn = document.getElementById('quickDateFilterBtn');
+    const quickDateFilterMenu = document.getElementById('quickDateFilterMenu');
+    const dateFilterBtnText = document.getElementById('dateFilterBtnText');
+    const applyDateFilterBtn = document.getElementById('applyDateFilterBtn');
+    const clearDateFilterBtn = document.getElementById('clearDateFilterBtn');
+    const clearFiltersBtn = document.getElementById('clearFiltersBtn');
     const pageSizeInput = document.getElementById('pageSize');
     const rows = document.getElementById('documentRows');
     const sortNameBtn = document.getElementById('sortNameBtn');
@@ -129,7 +137,7 @@
     const folderDeleteUi = Object.fromEntries(['Modal', 'Form', 'Path', 'Name', 'Location', 'Recursive', 'ConfirmField', 'ConfirmName', 'Status', 'Submit', 'Cancel', 'Btn'].map((key) => [key, document.getElementById(`deleteFolder${key}`)]));
     let deletingFolder = false;
     let folderDeleteTarget = null;
-    const folderEdit = Object.fromEntries(['Modal', 'Form', 'Title', 'Path', 'NameDisplay', 'Location', 'NameField', 'Name', 'TargetField', 'Target', 'Status', 'Save', 'Cancel'].map((key) => [key, document.getElementById(`folderEdit${key}`)]));
+    const folderEdit = Object.fromEntries(['Modal', 'Form', 'Title', 'Description', 'Path', 'NameDisplay', 'Location', 'NameField', 'Name', 'MoveLayout', 'MoveName', 'MoveLocation', 'TargetField', 'TargetSearch', 'Target', 'TargetSummary', 'Status', 'Save', 'Cancel'].map((key) => [key, document.getElementById(`folderEdit${key}`)]));
     let folderEditTask = null;
     let folderEditBusy = false;
     function updateFolderEditSaveState() {
@@ -140,20 +148,53 @@
             return;
         }
         folderEdit.Save.disabled = !folderEdit.Target.value;
+        folderEdit.TargetSummary.textContent = folderEdit.Target.value
+            ? `พร้อมย้าย 1 โฟลเดอร์ ไปยัง ${displayFolderPathWithoutRoot(folderEdit.Target.value)}`
+            : 'กรุณาเลือกโฟลเดอร์ปลายทาง';
     }
     function setFolderEditBusy(isBusy) {
         folderEditBusy = isBusy;
         folderEdit.Name.disabled = isBusy || folderEditTask?.operation !== 'rename';
+        folderEdit.TargetSearch.disabled = isBusy || folderEditTask?.operation !== 'move';
         folderEdit.Target.disabled = isBusy || folderEditTask?.operation !== 'move';
         folderEdit.Cancel.disabled = isBusy;
         folderEdit.Save.innerHTML = isBusy
             ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>กำลังบันทึก</span>'
-            : '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>บันทึก</span>';
+            : folderEditTask?.operation === 'move'
+                ? '<i class="fa-solid fa-folder-arrow-up" aria-hidden="true"></i><span>ยืนยันย้ายโฟลเดอร์</span>'
+                : '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>บันทึก</span>';
         if (isBusy) {
             folderEdit.Save.disabled = true;
         } else {
             updateFolderEditSaveState();
         }
+    }
+    function drawFolderEditTargets() {
+        if (folderEditTask?.operation !== 'move') return;
+        const previous = folderEdit.Target.value;
+        const query = folderEdit.TargetSearch.value.trim().toLocaleLowerCase();
+        const source = folderEditTask.path.replace(/\/+$/, '');
+        const parent = source.slice(0, source.lastIndexOf('/')) || '/';
+        const paths = new Set(folderTreeButtons.keys());
+        folderTreeChildren.forEach((children) => children.forEach((item) => paths.add(item.path)));
+
+        folderEdit.Target.replaceChildren(new Option('— เลือกโฟลเดอร์ปลายทาง —', ''));
+        [...paths]
+            .filter(Boolean)
+            .sort((left, right) => left.localeCompare(right, 'th', { numeric: true }))
+            .forEach((path) => {
+                if (path === parent || path === source || path.startsWith(`${source}/`)) return;
+                const displayName = displayFolderPathWithoutRoot(path);
+                if (query && !`${displayName} ${path}`.toLocaleLowerCase().includes(query)) return;
+                const option = new Option(displayName, path);
+                option.title = path;
+                folderEdit.Target.add(option);
+            });
+
+        folderEdit.Target.value = [...folderEdit.Target.options].some((option) => option.value === previous)
+            ? previous
+            : '';
+        updateFolderEditSaveState();
     }
     function closeFolderEdit() {
         if (folderEditBusy) return;
@@ -172,34 +213,43 @@
             path: state.folderPath,
             originalName: button.dataset.folderName.trim(),
         };
-        folderEdit.Title.textContent = operation === 'rename' ? 'เปลี่ยนชื่อโฟลเดอร์' : 'ย้ายโฟลเดอร์';
+        folderEdit.Title.textContent = operation === 'rename' ? 'เปลี่ยนชื่อโฟลเดอร์' : 'ย้ายโฟลเดอร์ 1 รายการ';
+        folderEdit.Description.textContent = operation === 'move'
+            ? 'ตรวจสอบโฟลเดอร์ที่เลือกทางซ้าย แล้วเลือกโฟลเดอร์ปลายทางทางขวา'
+            : '';
+        folderEdit.Description.hidden = operation !== 'move';
+        folderEdit.Form.classList.toggle('folder-move-mode', operation === 'move');
         folderEdit.Save.title = operation === 'rename' ? 'บันทึกชื่อโฟลเดอร์ใหม่' : 'ย้ายโฟลเดอร์ไปยังปลายทางที่เลือก';
         folderEdit.NameDisplay.textContent = button.dataset.folderName;
+        folderEdit.MoveName.textContent = button.dataset.folderName;
+        folderEdit.MoveLocation.textContent = displayFolderPathWithoutRoot(state.folderPath);
+        folderEdit.Path.hidden = operation === 'move';
         folderEdit.Location.closest('div').hidden = operation === 'rename';
         folderEdit.Location.textContent = operation === 'rename' ? '' : displayFolderPathWithoutRoot(state.folderPath);
         folderEdit.Name.value = button.dataset.folderName;
         folderEdit.NameField.hidden = operation !== 'rename';
-        folderEdit.TargetField.hidden = operation !== 'move';
+        folderEdit.MoveLayout.hidden = operation !== 'move';
+        folderEdit.TargetSummary.hidden = operation !== 'move';
         folderEdit.Name.required = operation === 'rename';
         folderEdit.Target.required = operation === 'move';
         folderEdit.Name.disabled = operation !== 'rename';
+        folderEdit.TargetSearch.disabled = operation !== 'move';
         folderEdit.Target.disabled = operation !== 'move';
-        folderEdit.Target.replaceChildren(new Option('เลือกโฟลเดอร์ปลายทาง', ''));
-        const source = state.folderPath.replace(/\/+$/, '');
-        const parent = source.slice(0, source.lastIndexOf('/')) || '/';
-        for (const [path, entry] of folderTreeButtons) {
-            if (!path || path === parent || path === source || path.startsWith(`${source}/`)) continue;
-            folderEdit.Target.add(new Option(path, path));
-        }
+        folderEdit.TargetSearch.value = '';
+        folderEdit.Target.value = '';
+        drawFolderEditTargets();
         folderEdit.Status.textContent = '';
         folderEdit.Save.hidden = false;
+        folderEdit.Save.innerHTML = operation === 'move'
+            ? '<i class="fa-solid fa-folder-arrow-up" aria-hidden="true"></i><span>ยืนยันย้ายโฟลเดอร์</span>'
+            : '<i class="fa-solid fa-floppy-disk" aria-hidden="true"></i><span>บันทึก</span>';
         folderEdit.Save.disabled = false;
         folderEdit.Cancel.textContent = 'ยกเลิก';
         folderEdit.Cancel.title = 'ยกเลิกและปิดหน้าต่าง';
         folderEdit.Modal.hidden = false;
         document.querySelector('main').inert = true;
         updateFolderEditSaveState();
-        (operation === 'rename' ? folderEdit.Name : folderEdit.Target).focus();
+        (operation === 'rename' ? folderEdit.Name : folderEdit.TargetSearch).focus();
     }
     document.getElementById('renameFolderBtn').addEventListener('click', () => openFolderEdit('rename'));
     document.getElementById('moveFolderBtn').addEventListener('click', () => openFolderEdit('move'));
@@ -208,6 +258,7 @@
         updateFolderEditSaveState();
     });
     folderEdit.Target.addEventListener('change', updateFolderEditSaveState);
+    folderEdit.TargetSearch.addEventListener('input', drawFolderEditTargets);
     folderEdit.Cancel.addEventListener('click', closeFolderEdit);
     folderEdit.Modal.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); return; }
@@ -1876,12 +1927,32 @@
         url.searchParams.set('sortDirection', sortDirection);
     }
 
+    function getDocumentDateFilters() {
+        const createdFrom = createdFromInput?.value || '';
+        const createdTo = createdToInput?.value || '';
+        if (createdFrom && createdTo && createdFrom > createdTo) {
+            throw new Error('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด');
+        }
+        return { createdFrom, createdTo };
+    }
+
+    function applyDocumentDateParams(url, filters = getDocumentDateFilters()) {
+        if (filters.createdFrom) url.searchParams.set('createdFrom', filters.createdFrom);
+        if (filters.createdTo) url.searchParams.set('createdTo', filters.createdTo);
+    }
+
+    function applyDocumentScopeParam(url, scope = 'tree') {
+        url.searchParams.set('scope', scope === 'tree' ? 'tree' : 'folder');
+    }
+
     async function loadDocuments(options = {}) {
         const runId = ++documentLoadRunId;
         bulk.setContext(state.folderPath, keywordInput.value.trim());
         const maxItems = Number(pageSizeInput.value || 25);
         const skipCount = (state.page - 1) * maxItems;
         const keyword = keywordInput.value.trim();
+        const dateFilters = getDocumentDateFilters();
+        const hasFilters = Boolean(keyword || dateFilters.createdFrom || dateFilters.createdTo);
         const allowList = Boolean(options.allowList);
         const refreshKey = options.refresh ? String(Date.now()) : '';
 
@@ -1895,17 +1966,17 @@
             return;
         }
 
-        if (!keyword && !allowList) {
-            setMessage('กรุณากรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา', true);
+        if (!hasFilters && !allowList) {
+            setMessage('กรุณากรอกชื่อไฟล์หรือเลือกช่วงวันที่อัปโหลดก่อนค้นหา', true);
             keywordInput.focus();
             return;
         }
 
         state.pageSize = maxItems;
         // Keep track of search results even if the input is subsequently cleared.
-        state.documentSearchActive = Boolean(keyword);
+        state.documentSearchActive = hasFilters;
         const folderLabel = state.folderLabel || 'โฟลเดอร์ที่เลือก';
-        const loadingText = keyword
+        const loadingText = hasFilters
             ? `กำลังค้นหาเอกสารใน ${folderLabel}...`
             : `กำลังโหลดเอกสารใน ${folderLabel}...`;
         setMessage(loadingText);
@@ -1915,13 +1986,15 @@
 
         let payload;
         if (keyword) {
-            payload = await findExactThenPartial(keyword, maxItems, skipCount);
+            payload = await findExactThenPartial(keyword, maxItems, skipCount, dateFilters);
         } else {
             const url = new URL('/user-api/alfresco/documents', config.apiBaseUrl);
             url.searchParams.set('folderPath', state.folderPath);
             url.searchParams.set('maxItems', String(maxItems));
             url.searchParams.set('skipCount', String(skipCount));
             applyDocumentSortParams(url);
+            applyDocumentDateParams(url, dateFilters);
+            applyDocumentScopeParam(url);
             if (refreshKey) {
                 url.searchParams.set('_', refreshKey);
             }
@@ -1949,10 +2022,10 @@
         if (userPermissionMenu && !userPermissionMenu.hidden) renderCurrentDocumentPermissions();
         setResultCount(items.length);
         const totalText = state.hasKnownTotal ? state.totalItems : items.length;
-        const badgeText = keyword
+        const badgeText = hasFilters
             ? `${folderLabel} · พบผลการค้นหา ${totalText} รายการ`
             : `${folderLabel} · พบเอกสาร ${totalText} รายการ`;
-        const messageText = keyword
+        const messageText = hasFilters
             ? `${payload.message || 'พบผลการค้นหา'} · ${totalText} รายการ`
             : badgeText;
         setFolderResultBadge(badgeText);
@@ -1960,13 +2033,15 @@
         setMessage(items.length ? messageText : 'ไม่พบเอกสาร');
     }
 
-    async function findExactThenPartial(keyword, maxItems, skipCount) {
+    async function findExactThenPartial(keyword, maxItems, skipCount, dateFilters = getDocumentDateFilters()) {
         const exactUrl = new URL('/user-api/alfresco/documents/search', config.apiBaseUrl);
         exactUrl.searchParams.set('folderPath', state.folderPath);
         exactUrl.searchParams.set('exactName', keyword);
         exactUrl.searchParams.set('maxItems', String(maxItems));
         exactUrl.searchParams.set('skipCount', String(skipCount));
         applyDocumentSortParams(exactUrl);
+        applyDocumentDateParams(exactUrl, dateFilters);
+        applyDocumentScopeParam(exactUrl);
         const exactPayload = await requestJson(`${exactUrl.pathname}${exactUrl.search}`);
 
         if (pickItems(exactPayload).length) {
@@ -1980,6 +2055,8 @@
         partialUrl.searchParams.set('maxItems', String(maxItems));
         partialUrl.searchParams.set('skipCount', String(skipCount));
         applyDocumentSortParams(partialUrl);
+        applyDocumentDateParams(partialUrl, dateFilters);
+        applyDocumentScopeParam(partialUrl);
         const partialPayload = await requestJson(`${partialUrl.pathname}${partialUrl.search}`);
         partialPayload.message = 'พบเอกสารที่ใกล้เคียงกับคำค้น';
         return partialPayload;
@@ -1989,12 +2066,13 @@
         bulk.setDocuments([], state.folderPath);
         if (!items.length) {
             const keyword = keywordInput.value.trim();
+            const hasFilters = Boolean(keyword || createdFromInput?.value || createdToInput?.value);
             rows.innerHTML = `
                 <tr>
                     <td colspan="5" class="empty-state-cell">
                         <div class="empty-state">
                             <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-                            <p>${keyword ? 'ไม่พบเอกสารที่ตรงกับคำค้น' : 'ไม่พบเอกสารในโฟลเดอร์นี้'}</p>
+                            <p>${hasFilters ? 'ไม่พบเอกสารที่ตรงกับตัวกรอง' : 'ไม่พบเอกสารในโฟลเดอร์นี้'}</p>
                         </div>
                     </td>
                 </tr>
@@ -2908,8 +2986,17 @@ ${moreActions}
     searchForm.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        if (!keywordInput.value.trim()) {
-            setMessage('กรุณากรอกชื่อไฟล์หรือเลขที่เอกสารก่อนค้นหา', true);
+        let dateFilters;
+        try {
+            dateFilters = getDocumentDateFilters();
+        } catch (error) {
+            setMessage(error.message, true);
+            createdFromInput?.focus();
+            return;
+        }
+
+        if (!keywordInput.value.trim() && !dateFilters.createdFrom && !dateFilters.createdTo) {
+            setMessage('กรุณากรอกชื่อไฟล์หรือเลือกช่วงวันที่อัปโหลดก่อนค้นหา', true);
             keywordInput.focus();
             return;
         }
@@ -2929,7 +3016,110 @@ ${moreActions}
         });
     }
 
-    keywordInput.addEventListener('input', () => bulk.setContext(state.folderPath, keywordInput.value.trim()));
+    keywordInput.addEventListener('input', () => {
+        bulk.setContext(state.folderPath, keywordInput.value.trim());
+    });
+
+    createdFromInput?.addEventListener('change', () => {
+        if (createdToInput) createdToInput.min = createdFromInput.value;
+    });
+    createdToInput?.addEventListener('change', () => {
+        if (createdFromInput) createdFromInput.max = createdToInput.value;
+    });
+
+    function formatLocalDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function formatDateFilterLabel(value) {
+        const [year, month, day] = String(value || '').split('-');
+        return year && month && day ? `${day}/${month}/${year.slice(-2)}` : '';
+    }
+
+    function updateDateFilterButtonText() {
+        if (!dateFilterBtnText) return;
+        const from = formatDateFilterLabel(createdFromInput?.value);
+        const to = formatDateFilterLabel(createdToInput?.value);
+        dateFilterBtnText.textContent = from && to
+            ? `${from}–${to}`
+            : from ? `ตั้งแต่ ${from}` : to ? `ถึง ${to}` : 'วันที่';
+    }
+
+    function closeQuickDateFilterMenu() {
+        if (!quickDateFilterMenu || !quickDateFilterBtn) return;
+        quickDateFilterMenu.hidden = true;
+        quickDateFilterBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    quickDateFilterBtn?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const willOpen = quickDateFilterMenu.hidden;
+        quickDateFilterMenu.hidden = !willOpen;
+        quickDateFilterBtn.setAttribute('aria-expanded', String(willOpen));
+    });
+
+    quickDateFilterMenu?.addEventListener('click', (event) => {
+        const presetButton = event.target.closest('[data-date-preset]');
+        if (!presetButton) return;
+        const today = new Date();
+        const from = new Date(today);
+        const presetDays = presetButton.dataset.datePreset === '30days'
+            ? 30
+            : presetButton.dataset.datePreset === '7days' ? 7 : 1;
+        from.setDate(today.getDate() - (presetDays - 1));
+        createdFromInput.value = formatLocalDate(from);
+        createdToInput.value = formatLocalDate(today);
+        createdFromInput.max = createdToInput.value;
+        createdToInput.min = createdFromInput.value;
+    });
+
+    applyDateFilterBtn?.addEventListener('click', () => {
+        try {
+            getDocumentDateFilters();
+            updateDateFilterButtonText();
+            closeQuickDateFilterMenu();
+        } catch (error) {
+            setMessage(error.message, true);
+            createdFromInput?.focus();
+        }
+    });
+
+    clearDateFilterBtn?.addEventListener('click', () => {
+        createdFromInput.value = '';
+        createdFromInput.max = '';
+        createdToInput.value = '';
+        createdToInput.min = '';
+        updateDateFilterButtonText();
+        closeQuickDateFilterMenu();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.quick-filter-wrap')) closeQuickDateFilterMenu();
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeQuickDateFilterMenu();
+    });
+
+    clearFiltersBtn?.addEventListener('click', () => {
+        keywordInput.value = '';
+        createdFromInput.value = '';
+        createdFromInput.max = '';
+        createdToInput.value = '';
+        createdToInput.min = '';
+        updateDateFilterButtonText();
+        closeQuickDateFilterMenu();
+        bulk.setContext(state.folderPath, '');
+        state.page = 1;
+        if (state.isHomeSelected) {
+            showSelectFolderPrompt();
+            return;
+        }
+        loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
+    });
 
     reloadFoldersBtn.addEventListener('click', () => loadFolders().catch((error) => setMessage(error.message, true)));
     if (collapseFoldersBtn) {

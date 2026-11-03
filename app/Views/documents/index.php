@@ -54,6 +54,7 @@
     <div id="folderEditModal" class="session-modal" role="dialog" aria-modal="true" aria-labelledby="folderEditTitle" hidden>
         <form id="folderEditForm" class="session-dialog rename-dialog">
             <h2 id="folderEditTitle"></h2>
+            <p id="folderEditDescription" hidden></p>
             <dl id="folderEditPath" class="folder-action-details">
                 <div>
                     <dt><i class="fa-regular fa-folder" aria-hidden="true"></i> ชื่อโฟลเดอร์</dt>
@@ -65,7 +66,28 @@
                 </div>
             </dl>
             <label id="folderEditNameField" class="rename-field"><span>ชื่อโฟลเดอร์ใหม่</span><input id="folderEditName" type="text" autocomplete="off"></label>
-            <label id="folderEditTargetField" class="rename-field"><span>โฟลเดอร์ปลายทาง</span><select id="folderEditTarget"></select></label>
+            <div id="folderEditMoveLayout" class="bulk-layout" hidden>
+                <section class="bulk-panel bulk-selected-panel" aria-labelledby="folderEditSelectedTitle">
+                    <h3 id="folderEditSelectedTitle"><i class="fa-regular fa-folder" aria-hidden="true"></i> โฟลเดอร์ที่เลือก</h3>
+                    <div class="folder-move-source">
+                        <i class="fa-solid fa-folder" aria-hidden="true"></i>
+                        <div>
+                            <strong id="folderEditMoveName">-</strong>
+                            <span id="folderEditMoveLocation">-</span>
+                        </div>
+                    </div>
+                </section>
+                <section id="folderEditTargetField" class="bulk-panel bulk-destination-panel" aria-labelledby="folderEditDestinationTitle">
+                    <h3 id="folderEditDestinationTitle"><i class="fa-solid fa-folder-tree" aria-hidden="true"></i> โฟลเดอร์ปลายทาง</h3>
+                    <label class="rename-field">ค้นหาโฟลเดอร์ปลายทาง
+                        <input id="folderEditTargetSearch" type="search" autocomplete="off" placeholder="ค้นหาชื่อหรือเส้นทางโฟลเดอร์">
+                    </label>
+                    <label class="rename-field">เลือกโฟลเดอร์ปลายทาง
+                        <select id="folderEditTarget" size="7"></select>
+                    </label>
+                </section>
+            </div>
+            <p id="folderEditTargetSummary" class="rename-current-name bulk-target-summary" hidden></p>
             <p id="folderEditStatus" role="status" aria-live="polite"></p>
             <div class="session-actions split-actions">
                 <button id="folderEditSave" type="submit" title="บันทึกการแก้ไขโฟลเดอร์">บันทึก</button>
@@ -258,13 +280,45 @@
                             <input id="keyword" type="search" placeholder="ค้นหาชื่อไฟล์ เช่น EVLPS701-0001 หรือคำค้นอื่นๆ">
                         </span>
                     </label>
-                    <button type="submit" title="ค้นหาเอกสาร">
+                    <div class="quick-filter-wrap">
+                        <button id="quickDateFilterBtn" type="button" class="secondary-btn" aria-haspopup="dialog" aria-expanded="false" aria-controls="quickDateFilterMenu" title="เลือกช่วงวันที่อัปโหลด">
+                            <i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            <span id="dateFilterBtnText">วันที่</span>
+                        </button>
+                        <div id="quickDateFilterMenu" class="quick-filter-menu date-filter-popover" role="dialog" aria-label="เลือกช่วงวันที่อัปโหลด" hidden>
+                            <strong class="date-popover-title">เลือกช่วงวันที่อัปโหลด</strong>
+                            <div class="date-popover-fields">
+                                <label>
+                                    <span>วันเริ่มต้น</span>
+                                    <input id="createdFrom" type="date" aria-label="วันที่อัปโหลดเริ่มต้น">
+                                </label>
+                                <span class="date-range-separator">ถึง</span>
+                                <label>
+                                    <span>วันสิ้นสุด</span>
+                                    <input id="createdTo" type="date" aria-label="วันที่อัปโหลดสิ้นสุด">
+                                </label>
+                            </div>
+                            <div class="date-preset-actions" aria-label="เลือกช่วงวันที่ด่วน">
+                                <button type="button" data-date-preset="today">วันนี้</button>
+                                <button type="button" data-date-preset="7days">7 วันล่าสุด</button>
+                                <button type="button" data-date-preset="30days">30 วันล่าสุด</button>
+                            </div>
+                            <div class="date-popover-actions">
+                                <button id="clearDateFilterBtn" type="button" class="secondary-btn">ล้างวันที่</button>
+                                <button id="applyDateFilterBtn" type="button">ใช้วันที่</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="searchSubmitBtn" type="submit" title="ค้นหาเอกสาร">
                         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                         <span>ค้นหา</span>
                     </button>
-                    <button id="reloadFoldersBtn" type="button" class="secondary-btn" title="โหลดรายการโฟลเดอร์และเอกสารใหม่">
+                    <button id="clearFiltersBtn" type="button" class="secondary-btn" title="ล้างชื่อไฟล์และช่วงวันที่ค้นหา">
+                        <i class="fa-regular fa-circle-xmark" aria-hidden="true"></i>
+                        <span>ล้าง</span>
+                    </button>
+                    <button id="reloadFoldersBtn" type="button" class="secondary-btn icon-only-btn" title="โหลดรายการโฟลเดอร์และเอกสารใหม่" aria-label="โหลดรายการโฟลเดอร์และเอกสารใหม่">
                         <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-                        <span>รีเฟรช</span>
                     </button>
                 </div>
 
