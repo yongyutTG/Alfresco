@@ -346,6 +346,7 @@
                     <colgroup>
                         <col class="col-file-name">
                         <col class="col-file-created">
+                        <col class="col-file-modified">
                         <col class="col-file-size">
                         <col class="col-file-meta">
                         <col class="col-file-actions">
@@ -361,7 +362,13 @@
                             </th>
                             <th>
                                 <button id="sortCreatedBtn" type="button" class="sort-header" aria-label="เรียงวันที่สร้าง" title="เรียงวันที่สร้างล่าสุดก่อน">
-                                    <span>วันที่สร้าง</span>
+                                    <span>ผู้สร้าง/วันที่สร้าง</span>
+                                    <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
+                                </button>
+                            </th>
+                            <th>
+                                <button id="sortModifiedBtn" type="button" class="sort-header" aria-label="เรียงวันที่แก้ไข" title="เรียงวันที่แก้ไขล่าสุดก่อน">
+                                    <span>แก้ไขล่าสุด</span>
                                     <i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i>
                                 </button>
                             </th>
@@ -372,7 +379,7 @@
                     </thead>
                     <tbody id="documentRows">
                         <tr>
-                            <td colspan="5" class="empty-state-cell">
+                            <td colspan="6" class="empty-state-cell">
                                 <div class="empty-state">
                                     <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                                     <p>กรุณาเลือกโฟลเดอร์เพื่อแสดงข้อมูลเอกสาร</p>

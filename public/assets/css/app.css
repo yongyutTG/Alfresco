@@ -1282,8 +1282,8 @@ table {
 }
 
 input.bulk-checkbox {
-    width: 18px;
-    height: 18px;
+    width: 15px;
+    height: 15px;
     min-height: 0;
     padding: 0;
     flex-shrink: 0;
@@ -1292,7 +1292,7 @@ input.bulk-checkbox {
     cursor: pointer;
 }
 
-#bulkSelectPage { margin-right: 8px; }
+#bulkSelectPage { margin-right: 7px; }
 #bulkFolderMode { width: 100%; margin-bottom: 10px; }
 #bulkFolderPanel p { font-size: 12px; color: var(--muted); }
 .bulk-folder-choices { max-height: 45vh; overflow: auto; }
@@ -1515,19 +1515,23 @@ input.bulk-checkbox {
 }
 
 .col-file-name {
-    width: 34%;
+    width: 28%;
 }
 
 .col-file-created {
-    width: 30%;
+    width: 18%;
+}
+
+.col-file-modified {
+    width: 22%;
 }
 
 .col-file-size {
-    width: 9%;
+    width: 8%;
 }
 
 .col-file-meta {
-    width: 15%;
+    width: 12%;
 }
 
 .col-file-actions {
@@ -2584,9 +2588,8 @@ td {
 }
 
 .file-created {
-    display: flex;
-    align-items: center;
-    gap: 7px;
+    display: grid;
+    gap: 4px;
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -2597,12 +2600,19 @@ td {
 }
 
 .file-created span {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-size-cell {
+    color: #526684;
+    font-size: 12px;
+    line-height: 1.2;
     white-space: nowrap;
 }
 
@@ -2612,6 +2622,32 @@ td {
 }
 
 .file-created i {
+    width: 14px;
+    flex: 0 0 14px;
+    color: #60718f;
+    text-align: center;
+}
+
+.file-modified {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    color: #526684;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.file-modified span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-modified i {
     width: 14px;
     flex: 0 0 14px;
     color: #60718f;

@@ -34,6 +34,7 @@
         sortField: 'created',
         nameSortDirection: 'asc',
         createdSortDirection: 'desc',
+        modifiedSortDirection: 'desc',
         canCreateFolder: false,
         currentDocuments: [],
         documentSearchActive: false,
@@ -63,6 +64,7 @@
     const rows = document.getElementById('documentRows');
     const sortNameBtn = document.getElementById('sortNameBtn');
     const sortCreatedBtn = document.getElementById('sortCreatedBtn');
+    const sortModifiedBtn = document.getElementById('sortModifiedBtn');
     const message = document.getElementById('message');
     const resultCount = document.getElementById('resultCount');
     const pageInfo = document.getElementById('pageInfo');
@@ -1663,7 +1665,7 @@
         loadDocuments({ allowList: true }).catch((error) => {
             setMessage(error.message, true);
             setFolderResultBadge(`${folderLabel} · โหลดเอกสารไม่สำเร็จ`);
-            rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+            rows.innerHTML = '<tr><td colspan="6" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
             updatePager(false);
         });
 
@@ -1802,7 +1804,7 @@
         bulk.setDocuments([], state.folderPath);
         rows.innerHTML = `
             <tr>
-                <td colspan="5" class="loading-spinner-row">
+                <td colspan="6" class="loading-spinner-row">
                     <div id="loading-spinner" class="loading-spinner text-center my-4">
                         <i class="fa-solid fa-spinner fa-spin loading-spinner-icon"></i>
                         <p class="loading-spinner-text">กำลังโหลดข้อมูล...</p>
@@ -1891,7 +1893,7 @@
             } catch (error) {
                 setMessage(error.message, true);
                 setFolderResultBadge(`${state.folderLabel || 'โฟลเดอร์ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
-                rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+                rows.innerHTML = '<tr><td colspan="6" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
                 updatePager(false);
             }
         });
@@ -1918,10 +1920,10 @@
     }
 
     function applyDocumentSortParams(url) {
-        const sortBy = state.sortField === 'created' ? 'created' : 'name';
-        const sortDirection = state.sortField === 'created'
+        const sortBy = ['created', 'modified'].includes(state.sortField) ? state.sortField : 'name';
+        const sortDirection = sortBy === 'created'
             ? state.createdSortDirection
-            : state.nameSortDirection;
+            : sortBy === 'modified' ? state.modifiedSortDirection : state.nameSortDirection;
 
         url.searchParams.set('sortBy', sortBy);
         url.searchParams.set('sortDirection', sortDirection);
@@ -2069,7 +2071,7 @@
             const hasFilters = Boolean(keyword || createdFromInput?.value || createdToInput?.value);
             rows.innerHTML = `
                 <tr>
-                    <td colspan="5" class="empty-state-cell">
+                    <td colspan="6" class="empty-state-cell">
                         <div class="empty-state">
                             <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
                             <p>${hasFilters ? 'ไม่พบเอกสารที่ตรงกับตัวกรอง' : 'ไม่พบเอกสารในโฟลเดอร์นี้'}</p>
@@ -2150,10 +2152,17 @@ ${deleteAction}
                     </td>
                     <td>
                         <div class="file-created">
+                            <span><i class="fa-solid fa-user" aria-hidden="true"></i>ผู้สร้าง: ${createdBy}</span>
                             <span><i class="fa-regular fa-calendar" aria-hidden="true"></i>วันที่สร้าง: ${creationDate}</span>
                         </div>
                     </td>
-                    <td>${sizeText}</td>
+                    <td>
+                        <div class="file-modified">
+                            <span><i class="fa-solid fa-user-pen" aria-hidden="true"></i>ผู้แก้ไข: ${lastModifiedBy}</span>
+                            <span><i class="fa-regular fa-calendar-check" aria-hidden="true"></i>วันที่แก้ไข: ${lastModificationDate}</span>
+                        </div>
+                    </td>
+                    <td class="file-size-cell">${sizeText}</td>
                     <td>
                         <button
                             type="button"
@@ -2219,6 +2228,16 @@ ${moreActions}
             });
         }
 
+        if (state.sortField === 'modified') {
+            return [...items].sort((left, right) => {
+                const leftTime = Date.parse(left.lastModificationDate || '') || 0;
+                const rightTime = Date.parse(right.lastModificationDate || '') || 0;
+                const result = leftTime - rightTime;
+
+                return state.modifiedSortDirection === 'asc' ? result : -result;
+            });
+        }
+
         return [...items].sort((left, right) => {
             const leftName = String(left.name || '');
             const rightName = String(right.name || '');
@@ -2259,6 +2278,20 @@ ${moreActions}
         sortCreatedBtn.setAttribute('aria-sort', isAscending ? 'ascending' : 'descending');
         sortCreatedBtn.setAttribute('title', isAscending ? 'เรียงวันที่สร้างเก่าสุดก่อน' : 'เรียงวันที่สร้างล่าสุดก่อน');
         sortCreatedBtn.classList.toggle('active', state.sortField === 'created');
+
+        if (icon) {
+            icon.className = isAscending ? 'fa-solid fa-arrow-up-wide-short' : 'fa-solid fa-arrow-down-wide-short';
+        }
+    }
+
+    function updateModifiedSortButton() {
+        if (!sortModifiedBtn) return;
+
+        const icon = sortModifiedBtn.querySelector('i');
+        const isAscending = state.modifiedSortDirection === 'asc';
+        sortModifiedBtn.setAttribute('aria-sort', isAscending ? 'ascending' : 'descending');
+        sortModifiedBtn.setAttribute('title', isAscending ? 'เรียงวันที่แก้ไขเก่าสุดก่อน' : 'เรียงวันที่แก้ไขล่าสุดก่อน');
+        sortModifiedBtn.classList.toggle('active', state.sortField === 'modified');
 
         if (icon) {
             icon.className = isAscending ? 'fa-solid fa-arrow-up-wide-short' : 'fa-solid fa-arrow-down-wide-short';
@@ -2849,7 +2882,7 @@ ${moreActions}
         bulk.setDocuments([], state.folderPath);
         rows.innerHTML = `
             <tr>
-                <td colspan="5" class="empty-state-cell">
+                <td colspan="6" class="empty-state-cell">
                     <div class="empty-state">
                         <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
                         <p>กรุณาเลือกโฟลเดอร์เพื่อแสดงข้อมูลเอกสาร</p>
@@ -3152,7 +3185,7 @@ ${moreActions}
             } catch (error) {
                 setMessage(error.message, true);
                 setFolderResultBadge(`${state.folderLabel || 'โฟลเดอร์ที่เลือก'} · โหลดเอกสารไม่สำเร็จ`);
-                rows.innerHTML = '<tr><td colspan="5" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+                rows.innerHTML = '<tr><td colspan="6" class="muted">โหลดข้อมูลไม่สำเร็จ</td></tr>';
                 updatePager(false);
             }
         });
@@ -3452,6 +3485,7 @@ ${moreActions}
             state.page = 1;
             updateNameSortButton();
             updateCreatedSortButton();
+            updateModifiedSortButton();
             loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
         });
     }
@@ -3463,6 +3497,19 @@ ${moreActions}
             state.page = 1;
             updateNameSortButton();
             updateCreatedSortButton();
+            updateModifiedSortButton();
+            loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
+        });
+    }
+
+    if (sortModifiedBtn) {
+        sortModifiedBtn.addEventListener('click', () => {
+            state.modifiedSortDirection = state.sortField === 'modified' && state.modifiedSortDirection === 'desc' ? 'asc' : 'desc';
+            state.sortField = 'modified';
+            state.page = 1;
+            updateNameSortButton();
+            updateCreatedSortButton();
+            updateModifiedSortButton();
             loadDocuments({ allowList: true }).catch((error) => setMessage(error.message, true));
         });
     }
@@ -3494,6 +3541,7 @@ ${moreActions}
     setSelectedFolder('', 'หน้าหลัก', true);
     updateNameSortButton();
     updateCreatedSortButton();
+    updateModifiedSortButton();
     updatePager(false);
     loadFolders().catch((error) => setMessage(error.message, true));
 })();
