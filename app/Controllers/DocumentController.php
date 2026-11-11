@@ -9,10 +9,10 @@ class DocumentController extends BaseController
     public function index()
     {
         return view('documents/index', [
-            'apiBaseUrl' => rtrim((string) env('userAlfrescoApi.baseUrl', 'http://localhost:3001'), '/'),
+            'apiBaseUrl' => rtrim((string) env('userAlfrescoApi.baseUrl'), '/'),
             'rootPath'   => $this->rootPath,
-            'appVersion' => (string) env('app.version', '1.0.0'),
-            'serverLabel' => (string) env('app.serverLabel', 'ALFRESCO-API'),
+            'appVersion' => (string) env('app.version'),
+            'serverLabel' => (string) env('app.serverLabel'),
             'idleTimeoutSeconds' => (int) env('SESSION_IDLE_TIMEOUT'),
         ]);
     }

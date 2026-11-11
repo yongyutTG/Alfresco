@@ -14,9 +14,6 @@
     const passwordInput = document.getElementById('password');
     const loginBtn = document.getElementById('loginBtn');
  
-
-    // configureToastr();
-
    let existingToken = localStorage.getItem(storage.accessToken);
     if (existingToken && hasIdleExpired()) {
         clearStoredSession();

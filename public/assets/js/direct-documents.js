@@ -827,11 +827,12 @@
         }
 
         function setSidebarCollapsed(collapsed, persist = true) {
-            sidebar.hidden = collapsed;
+            sidebar.hidden = false;
+            sidebar.classList.toggle('is-collapsed', collapsed);
             appLayout.classList.toggle('sidebar-collapsed', collapsed);
             sidebarToggleBtn.setAttribute('aria-expanded', String(!collapsed));
-            sidebarToggleBtn.setAttribute('aria-label', collapsed ? 'แสดงเมนูโฟลเดอร์' : 'ซ่อนเมนูโฟลเดอร์');
-            sidebarToggleBtn.title = collapsed ? 'แสดงเมนูโฟลเดอร์' : 'ซ่อนเมนูโฟลเดอร์';
+            sidebarToggleBtn.setAttribute('aria-label', collapsed ? 'ขยายเมนูโฟลเดอร์' : 'ย่อเมนูโฟลเดอร์');
+            sidebarToggleBtn.title = collapsed ? 'ขยายเมนูโฟลเดอร์' : 'ย่อเมนูโฟลเดอร์';
             sidebarToggleBtn.classList.toggle('is-collapsed', collapsed);
             if (persist) {
                 localStorage.setItem(storage.sidebarCollapsed, String(collapsed));
@@ -840,7 +841,7 @@
 
         setSidebarCollapsed(localStorage.getItem(storage.sidebarCollapsed) === 'true', false);
         sidebarToggleBtn.addEventListener('click', () => {
-            setSidebarCollapsed(!sidebar.hidden);
+            setSidebarCollapsed(!sidebar.classList.contains('is-collapsed'));
         });
     }
 
