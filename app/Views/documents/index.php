@@ -327,6 +327,27 @@
             <div class="summary-strip">
                 <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                 <span id="message">เลือกโฟลเดอร์เพื่อโหลดเอกสาร</span>
+                <nav class="table-pagination-bar" aria-label="เปลี่ยนหน้าเอกสาร">
+                    <div class="page-actions">
+                        <button id="firstBtn" type="button" class="pagination-icon-btn" aria-label="ไปหน้าแรก" title="ไปหน้าแรก">
+                            <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+                            <span class="sr-only">หน้าแรก</span>
+                        </button>
+                        <button id="prevBtn" type="button" class="pagination-icon-btn" aria-label="ไปหน้าก่อนหน้า" title="ไปหน้าก่อนหน้า">
+                            <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
+                            <span class="sr-only">ก่อนหน้า</span>
+                        </button>
+                        <strong id="pageInfo">หน้า 1 / 1</strong>
+                        <button id="nextBtn" type="button" class="pagination-icon-btn" aria-label="ไปหน้าถัดไป" title="ไปหน้าถัดไป">
+                            <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
+                            <span class="sr-only">ถัดไป</span>
+                        </button>
+                        <button id="lastBtn" type="button" class="pagination-icon-btn" aria-label="ไปหน้าสุดท้าย" title="ไปหน้าสุดท้าย">
+                            <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
+                            <span class="sr-only">หน้าสุดท้าย</span>
+                        </button>
+                    </div>
+                </nav>
             </div>
 
             <div id="bulkDocumentActions" class="bulk-actions" hidden>
@@ -392,25 +413,6 @@
 
             <nav class="pagination" aria-label="Document pagination">
                 <div id="pageRangeInfo" class="page-range-info">แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ</div>
-                <div class="page-actions">
-                    <button id="firstBtn" type="button" title="ไปหน้าแรก">
-                        <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
-                        <span>หน้าแรก</span>
-                    </button>
-                    <button id="prevBtn" type="button" title="ไปหน้าก่อนหน้า">
-                        <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
-                        <span>ก่อนหน้า</span>
-                    </button>
-                    <strong id="pageInfo">หน้า 1 / 1</strong>
-                    <button id="nextBtn" type="button" title="ไปหน้าถัดไป">
-                        <span>ถัดไป</span>
-                        <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
-                    </button>
-                    <button id="lastBtn" type="button" title="ไปหน้าสุดท้าย">
-                        <span>หน้าสุดท้าย</span>
-                        <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
-                    </button>
-                </div>
                 <label class="page-size-field">
                     <span>รายการต่อหน้า</span>
                     <select id="pageSize" title="จำนวนรายการต่อหน้า" aria-label="จำนวนรายการต่อหน้า">
